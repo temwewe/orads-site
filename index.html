@@ -164,7 +164,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
         '<div class="oz-st"><span class="oz-er"><i></i><i></i><i></i><img src="icon-192.png" alt=""></span><span><b></b><small></small></span></div>';
       document.body.appendChild(LD);
       LD.t0 = Date.now();
-      LD.slow = setTimeout(function () { if (LD) LD.querySelector('small').textContent = 'Медленный интернет, ещё немного…'; }, 12000);
+      LD.slow = setTimeout(function () { if (LD) LD.querySelector('small').textContent = 'Почти готово, ещё немного…'; }, 12000);
     }
     LD.querySelector('b').textContent = text;
     LD.querySelector('small').textContent = sub || '';
@@ -335,7 +335,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
       [3500, '1/5 Переход из урока', function () { var c = document.createElement('div'); c.className = 'oz-ld'; c.id = 'demoCov'; c.innerHTML = '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:17px"><span class="oz-er" style="width:120px;height:120px;flex-basis:120px;margin-bottom:18px"><i></i><i></i><i></i><img src="icon-192.png" alt="" style="width:64px;height:64px;border-radius:16px;box-shadow:0 6px 20px rgba(117,43,45,.25)"></span>Открываем справочник<span style="font-weight:500;font-size:14px;color:#86868b">Проверяем подписку…</span></div>'; document.body.appendChild(c); }],
       [3000, '2/5 Первое открытие: проверка', function () { var d = document.getElementById('demoCov'); if (d) d.remove(); loader('Проверяем подписку', 'Справочник O-RADS US'); }],
       [4000, '3/5 Первое открытие: загрузка', function () { loader('Загружаем справочник', 'Сохраняем на телефон для работы без сети'); }],
-      [3500, '4/5 Медленный интернет', function () { LD.querySelector('small').textContent = 'Медленный интернет, ещё немного…'; }],
+      [3500, '4/5 Долгая загрузка', function () { LD.querySelector('small').textContent = 'Почти готово, ещё немного…'; }],
       [4000, '5/5 Повторное открытие', function () { show(ls.get(K.html) || '<div style="padding:24px">Здесь будет справочник</div>', false); setTimeout(function () { checking(true); }, 300); }]
     ];
     var i = 0;

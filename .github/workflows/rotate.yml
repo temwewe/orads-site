@@ -19,9 +19,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: node tools/probe.mjs
-        env:
-          API_TOKEN: ${{ secrets.API_TOKEN }}
       - run: node tools/rotate.mjs
         env:
           API_TOKEN: ${{ secrets.API_TOKEN }}

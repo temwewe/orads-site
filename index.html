@@ -325,7 +325,25 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   // Плашку показываем, когда открыт сам справочник.
   new MutationObserver(function () { if (!$('app').hidden) showBar(); else if (INST.bar) { INST.bar.remove(); INST.bar = null; } }).observe($('app'), { attributes: true, attributeFilter: ['hidden'] });
   window.addEventListener('online', function () { var p = pass(); if (p) { if (expired(p)) load(); else checkVersion(p); } });
-  load();
+  // Демо анимаций: orads.timofeeva-online.ru/#demo — показывает экраны загрузки по очереди, данные не трогает.
+  if (location.hash === '#demo') {
+    history.replaceState(null, '', location.pathname);
+    var tag = document.createElement('div');
+    tag.setAttribute('style', 'position:fixed;top:calc(8px + env(safe-area-inset-top));right:10px;z-index:300;background:rgba(0,0,0,.6);color:#fff;font:600 12px/1 system-ui;padding:6px 10px;border-radius:10px');
+    document.body.appendChild(tag);
+    var steps = [
+      [3500, '1/5 Переход из урока', function () { var c = document.createElement('div'); c.className = 'oz-ld'; c.id = 'demoCov'; c.innerHTML = '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:17px"><span class="oz-er" style="width:120px;height:120px;flex-basis:120px;margin-bottom:18px"><i></i><i></i><i></i><img src="icon-192.png" alt="" style="width:64px;height:64px;border-radius:16px;box-shadow:0 6px 20px rgba(117,43,45,.25)"></span>Открываем справочник<span style="font-weight:500;font-size:14px;color:#86868b">Проверяем подписку…</span></div>'; document.body.appendChild(c); }],
+      [3000, '2/5 Первое открытие: проверка', function () { var d = document.getElementById('demoCov'); if (d) d.remove(); loader('Проверяем подписку', 'Справочник O-RADS US'); }],
+      [4000, '3/5 Первое открытие: загрузка', function () { loader('Загружаем справочник', 'Сохраняем на телефон для работы без сети'); }],
+      [3500, '4/5 Медленный интернет', function () { LD.querySelector('small').textContent = 'Медленный интернет, ещё немного…'; }],
+      [4000, '5/5 Повторное открытие', function () { show(ls.get(K.html) || '<div style="padding:24px">Здесь будет справочник</div>', false); setTimeout(function () { checking(true); }, 300); }]
+    ];
+    var i = 0;
+    (function next() {
+      if (i >= steps.length) { checking(false); tag.textContent = 'Конец демо'; setTimeout(function () { tag.remove(); load(); }, 1500); return; }
+      var st = steps[i++]; tag.textContent = st[1]; st[2](); setTimeout(next, st[0]);
+    })();
+  } else load();
   showBar();
 
   // Окно справочника: закрытие свайпом вниз (за полоску или когда окно прокручено к началу).

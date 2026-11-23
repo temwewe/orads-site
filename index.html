@@ -17,40 +17,40 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 #gate{min-height:100vh;display:flex;flex-direction:column}
-.hd{background:var(--brand);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 20px 14px;font-weight:600;letter-spacing:.02em}
-.box{max-width:460px;margin:48px auto;padding:32px 26px;background:#fff;border-radius:22px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.ic{width:72px;height:72px;border-radius:18px;margin:0 auto 16px;display:block}
-.t{font-size:1.4rem;font-weight:700;margin:0 0 6px}
-.p{color:#555;margin:0 0 22px}
-.b{display:block;width:100%;padding:14px;border-radius:14px;border:0;font:600 1rem/1.2 inherit;text-decoration:none;cursor:pointer;margin-top:10px}
-.pr{background:var(--brand);color:#fff}.gh{background:#f1eaea;color:var(--brand)}
-.sm{font-size:.82rem;color:var(--mu);margin-top:18px}
-#app[hidden],#gate[hidden],.x[hidden]{display:none}
-.ft{max-width:900px;margin:0 auto;padding:14px 18px calc(24px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:center;color:var(--mu);font-size:.82rem}
-.ft button{border:0;background:none;color:var(--brand);font:600 .82rem inherit;cursor:pointer;padding:2px}
-.off{position:sticky;top:0;z-index:70;background:#fff4d6;color:#6b5100;text-align:center;font-size:.82rem;padding:6px 10px}
-.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:90}
-.sheet>div{background:#fff;border-radius:22px 22px 0 0;max-width:520px;width:100%;padding:24px 22px calc(24px + env(safe-area-inset-bottom))}
-.sheet ol{padding-left:20px;margin:10px 0 0}.sheet li{margin:6px 0}
+.oz-hd{background:var(--brand);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 20px 14px;font-weight:600;letter-spacing:.02em}
+.oz-box{max-width:460px;margin:48px auto;padding:32px 26px;background:#fff;border-radius:22px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.oz-ic{width:72px;height:72px;border-radius:18px;margin:0 auto 16px;display:block}
+.oz-t{font-size:1.4rem;font-weight:700;margin:0 0 6px}
+.oz-p{color:#555;margin:0 0 22px}
+.oz-b{display:block;width:100%;padding:14px;border-radius:14px;border:0;font:600 1rem/1.2 inherit;text-decoration:none;cursor:pointer;margin-top:10px}
+.oz-pr{background:var(--brand);color:#fff}.oz-gh{background:#f1eaea;color:var(--brand)}
+.oz-sm{font-size:.82rem;color:var(--mu);margin-top:18px}
+#app[hidden],#gate[hidden],.oz-x[hidden]{display:none}
+.oz-ft{max-width:900px;margin:0 auto;padding:14px 18px calc(24px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:center;color:var(--mu);font-size:.82rem}
+.oz-ft button{border:0;background:none;color:var(--brand);font:600 .82rem inherit;cursor:pointer;padding:2px}
+.oz-off{position:sticky;top:0;z-index:70;background:#fff4d6;color:#6b5100;text-align:center;font-size:.82rem;padding:6px 10px}
+.oz-sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:90}
+.oz-sheet>div{background:#fff;border-radius:22px 22px 0 0;max-width:520px;width:100%;padding:24px 22px calc(24px + env(safe-area-inset-bottom))}
+.oz-sheet ol{padding-left:20px;margin:10px 0 0}.oz-sheet li{margin:6px 0}
 </style>
 </head>
 <body>
 <div id="gate">
-  <div class="hd">TIMOFEEVA-ONLINE</div>
-  <div class="box">
-    <img class="ic" src="icon-192.png" alt="">
-    <p class="t">Справочник O-RADS US</p>
-    <p class="p" id="gMsg">Открываем справочник…</p>
-    <a class="b pr x" id="gLogin" hidden href="https://school.timofeeva-online.ru/learn/MsUmf5w010u7GnQxUhiGHg/theory?app=1">Открыть через школу</a>
-    <a class="b gh x" id="gBuy" hidden href="https://store.timofeeva-online.ru/orads#buy">Оформить подписку</a>
-    <button class="b gh x" id="gRetry" hidden>Попробовать ещё раз</button>
-    <p class="sm x" id="gHint" hidden>Справочник откроется из урока в личном кабинете школы «Тимофеева онлайн». Нужна активная подписка.</p>
+  <div class="oz-hd">TIMOFEEVA-ONLINE</div>
+  <div class="oz-box">
+    <img class="oz-ic" src="icon-192.png" alt="">
+    <p class="oz-t">Справочник O-RADS US</p>
+    <p class="oz-p" id="gMsg">Открываем справочник…</p>
+    <a class="oz-b oz-pr oz-x" id="gLogin" hidden href="https://school.timofeeva-online.ru/learn/MsUmf5w010u7GnQxUhiGHg/theory?app=1">Открыть через школу</a>
+    <a class="oz-b oz-gh oz-x" id="gBuy" hidden href="https://store.timofeeva-online.ru/orads#buy">Оформить подписку</a>
+    <button class="oz-b oz-gh oz-x" id="gRetry" hidden>Попробовать ещё раз</button>
+    <p class="oz-sm oz-x" id="gHint" hidden>Справочник откроется из урока в личном кабинете школы «Тимофеева онлайн». Нужна активная подписка.</p>
   </div>
 </div>
 <div id="app" hidden>
-  <div class="off" id="offBar" hidden>Нет сети: открыта сохранённая копия справочника</div>
+  <div class="oz-off" id="offBar" hidden>Нет сети: открыта сохранённая копия справочника</div>
   <div id="appBody"></div>
-  <div class="ft"><span id="who"></span><button id="bInstall" hidden>Установить на телефон</button><button id="bOut">Выйти</button></div>
+  <div class="oz-ft"><span id="who"></span><button id="bInstall" hidden>Установить на телефон</button><button id="bOut">Выйти</button></div>
 </div>
 <script>
 window.onerror = function (m, src, line) { var g = document.getElementById('gMsg'); if (g) g.textContent = 'Ошибка: ' + m + ' (' + line + ')'; };
@@ -102,6 +102,14 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
       for (var i = 0; i < o.attributes.length; i++) n.setAttribute(o.attributes[i].name, o.attributes[i].value);
       n.textContent = o.textContent; o.replaceWith(n);
     });
+  }
+  // Картинки справочника заранее сохраняем на телефон, чтобы они открывались и без сети (видео — нет, оно слишком большое).
+  function precache(html) {
+    if (!navigator.serviceWorker) return;
+    var urls = {}, re = /https:\/\/[^"'\s)<>`]+?\.(?:jpe?g|png|webp|gif|svg)(?:\?[^"'\s)<>`]*)?/gi, m;
+    while ((m = re.exec(html))) urls[m[0].replace(/&amp;/g, '&')] = 1;
+    var list = Object.keys(urls);
+    if (list.length) navigator.serviceWorker.ready.then(function (r) { if (r.active) r.active.postMessage({ precache: list }); }).catch(function () {});
   }
   function wipe() { [K.a, K.html, K.v].forEach(ls.del); }
 
@@ -157,6 +165,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
     }
     if (html && ls.get(K.v) === p.c) {
       show(html, !online);
+      if (online) precache(html);
       checkVersion(p);
       return;
     }
@@ -165,7 +174,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
       if (!ok) return;
       return decryptFrom(p).then(function (h) {
         ls.set(K.html, h); ls.set(K.v, p.c);
-        show(h, false);
+        show(h, false); precache(h);
       }, function (e) {
         if (e && (e.name === 'OperationError' || /файл 40/.test(e.message))) return needKey('Доступ к справочнику нужно обновить. Откройте его через школу.');
         if (html) return show(html, true);
@@ -185,8 +194,8 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   $('bInstall').onclick = function () {
     if (deferred) { deferred.prompt(); deferred = null; $('bInstall').hidden = true; return; }
     var d = document.createElement('div');
-    d.className = 'sheet';
-    d.innerHTML = '<div><p class="t" style="font-size:1.15rem">Значок на экране «Домой»</p><ol><li>Нажмите кнопку «Поделиться» (квадрат со стрелкой). В Яндекс Браузере — меню ☰ → «Добавить на экран „Домой“».</li><li>Выберите «На экран „Домой“».</li><li>Нажмите «Добавить».</li></ol><button class="b pr">Понятно</button></div>';
+    d.className = 'oz-sheet';
+    d.innerHTML = '<div><p class="oz-t" style="font-size:1.15rem">Значок на экране «Домой»</p><ol><li>Нажмите кнопку «Поделиться» (квадрат со стрелкой). В Яндекс Браузере — меню ☰ → «Добавить на экран „Домой“».</li><li>Выберите «На экран „Домой“».</li><li>Нажмите «Добавить».</li></ol><button class="oz-b oz-pr">Понятно</button></div>';
     d.onclick = function (e) { if (e.target === d || e.target.tagName === 'BUTTON') d.remove(); };
     document.body.appendChild(d);
   };

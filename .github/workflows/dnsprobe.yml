@@ -1,0 +1,15 @@
+name: dns probe
+on: [workflow_dispatch, push]
+jobs:
+  p:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'dnsprobe')
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for ns in ns3-l2.nic.ru ns4-l2.nic.ru ns8-l2.nic.ru ns4-cloud.nic.ru ns8-cloud.nic.ru; do
+            echo "== $ns"; for t in CNAME A AAAA TXT CAA; do echo "$t: $(dig +short +norecurse @$ns orads.timofeeva-online.ru $t | tr '\n' ' ')"; done
+            echo "SOA: $(dig +short @$ns timofeeva-online.ru SOA)"
+            echo "CAA zone: $(dig +short @$ns timofeeva-online.ru CAA | tr '\n' ' ')"
+          done
+          echo "== public"; dig +short orads.timofeeva-online.ru @8.8.8.8; dig +short orads.timofeeva-online.ru @1.1.1.1
+          curl -sI http://orads.timofeeva-online.ru/ | head -5

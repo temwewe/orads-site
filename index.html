@@ -22,12 +22,12 @@ html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-syst
 .oz-ic{width:72px;height:72px;border-radius:18px;margin:0 auto 16px;display:block}
 .oz-t{font-size:1.4rem;font-weight:700;margin:0 0 6px}
 .oz-p{color:#555;margin:0 0 22px}
-.oz-b{display:block;width:100%;padding:14px;border-radius:14px;border:0;font:600 1rem/1.2 inherit;text-decoration:none;cursor:pointer;margin-top:10px}
+.oz-b{display:block;width:100%;padding:14px;border-radius:14px;border:0;font-family:inherit;font-weight:600;font-size:1rem;line-height:1.2;text-decoration:none;cursor:pointer;margin-top:10px}
 .oz-pr{background:var(--brand);color:#fff}.oz-gh{background:#f1eaea;color:var(--brand)}
 .oz-sm{font-size:.82rem;color:var(--mu);margin-top:18px}
 #app[hidden],#gate[hidden],.oz-x[hidden]{display:none}
 .oz-ft{max-width:900px;margin:0 auto;padding:14px 18px calc(24px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:center;color:var(--mu);font-size:.82rem}
-.oz-ft button{border:0;background:none;color:var(--brand);font:600 .82rem inherit;cursor:pointer;padding:2px}
+.oz-ft button{border:0;background:none;color:var(--brand);font-family:inherit;font-weight:600;font-size:.82rem;cursor:pointer;padding:2px}
 .oz-off{position:sticky;top:0;z-index:70;background:#fff4d6;color:#6b5100;text-align:center;font-size:.82rem;padding:6px 10px}
 .oz-sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:90}
 .oz-sheet>div{background:#fff;border-radius:22px 22px 0 0;max-width:520px;width:100%;padding:24px 22px calc(24px + env(safe-area-inset-bottom))}
@@ -36,6 +36,14 @@ html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-syst
 .oz-zoom img{position:absolute;left:50%;top:50%;max-width:100vw;max-height:100vh;transform-origin:center;will-change:transform;user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
 .oz-zoom button{position:absolute;top:calc(12px + env(safe-area-inset-top));right:14px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:22px;line-height:40px;cursor:pointer}
 #ozSb img{cursor:zoom-in}
+.oz-ib{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:40;display:flex;align-items:center;gap:6px;background:var(--brand);border-radius:999px;padding:5px 5px 5px 4px;box-shadow:0 8px 28px rgba(117,43,45,.38);max-width:calc(100vw - 24px)}
+.oz-ib-go{border:0;font-size:1.05rem;background:none;color:#fff;font-family:inherit;font-weight:600;font-size:1rem;line-height:1.2;padding:10px 6px 10px 14px;cursor:pointer;white-space:nowrap}
+.oz-ib-go span{margin-right:4px}
+.oz-ib-x{border:0;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:14px;cursor:pointer}
+.oz-sl{display:block;font-size:.85rem;color:var(--mu);margin:4px 0 6px}
+.oz-sl select{display:block;width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1px solid #ddd;background:#fff;font-family:inherit;font-weight:600;font-size:1rem;color:var(--ink)}
+.oz-st{padding-left:22px;margin:12px 0 6px}.oz-st li{margin:8px 0;line-height:1.45}
+.oz-sheet>div{max-height:88vh;overflow-y:auto}
 .oz-sheet ol{padding-left:20px;margin:10px 0 0}.oz-sheet li{margin:6px 0}
 </style>
 </head>
@@ -55,7 +63,7 @@ html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-syst
 <div id="app" hidden>
   <div class="oz-off" id="offBar" hidden>Нет сети: открыта сохранённая копия справочника</div>
   <div id="appBody"></div>
-  <div class="oz-ft"><span id="who"></span><button id="bInstall" hidden>Установить на телефон</button><button id="bOut">Выйти</button></div>
+  <div class="oz-ft"><span id="who"></span><button id="bInstall" hidden>📲 Установить на телефон</button><button id="bOut">Выйти</button></div>
 </div>
 <script>
 window.onerror = function (m, src, line) { var g = document.getElementById('gMsg'); if (g) g.textContent = 'Ошибка: ' + m + ' (' + line + ')'; };
@@ -191,21 +199,71 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   $('gRetry').onclick = load;
   $('bOut').onclick = function () { wipe(); gate('Вы вышли. Чтобы снова открыть справочник, откройте его через школу.', { login: true }); };
 
+  // Установка на телефон: заметная кнопка внизу + подсказка под конкретный браузер.
   var deferred = null;
   var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-  var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; $('bInstall').hidden = false; });
-  if (ios && !standalone) $('bInstall').hidden = false;
-  $('bInstall').onclick = function () {
-    if (deferred) { deferred.prompt(); deferred = null; $('bInstall').hidden = true; return; }
-    var d = document.createElement('div');
-    d.className = 'oz-sheet';
-    d.innerHTML = '<div><p class="oz-t" style="font-size:1.15rem">Значок на экране «Домой»</p><ol><li>Нажмите кнопку «Поделиться» (квадрат со стрелкой). В Яндекс Браузере — меню ☰ → «Добавить на экран „Домой“».</li><li>Выберите «На экран „Домой“».</li><li>Нажмите «Добавить».</li></ol><button class="oz-b oz-pr">Понятно</button></div>';
-    d.onclick = function (e) { if (e.target === d || e.target.tagName === 'BUTTON') d.remove(); };
+  var ua = navigator.userAgent;
+  var ios = /iphone|ipad|ipod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var android = /android/i.test(ua);
+  function detect() {
+    if (/YaBrowser|YaSearchBrowser|YandexSearch/i.test(ua)) return ios ? 'ios-ya' : 'and-ya';
+    if (/Telegram|Instagram|FBAN|FBAV|VKClient|WhatsApp|; wv\)/i.test(ua)) return 'inapp';
+    if (ios) { if (/CriOS/.test(ua)) return 'ios-chrome'; if (/FxiOS|EdgiOS|OPiOS|OPT\//.test(ua)) return 'ios-other'; return 'ios-safari'; }
+    if (android) { if (/SamsungBrowser/.test(ua)) return 'and-samsung'; if (/Firefox/.test(ua)) return 'and-firefox'; if (/Chrome/.test(ua)) return 'and-chrome'; return 'and-other'; }
+    return 'pc';
+  }
+  var GUIDES = [
+    ['ios-safari', 'iPhone · Safari', ['Нажмите кнопку «Поделиться» — квадрат со стрелкой вверх внизу экрана. В новых iOS она прячется за кнопкой «•••» справа от адресной строки.', 'Пролистайте список вниз и выберите «На экран „Домой“».', 'Нажмите «Добавить» в правом верхнем углу.']],
+    ['ios-chrome', 'iPhone · Chrome', ['Нажмите кнопку «Поделиться» — квадрат со стрелкой справа в адресной строке (или «•••» внизу → «Поделиться»).', 'Выберите «На экран „Домой“».', 'Нажмите «Добавить».', 'Если пункта нет — нажмите «Скопировать ссылку» ниже и откройте её в Safari.']],
+    ['ios-ya', 'iPhone · Яндекс Браузер', ['Нажмите кнопку меню ☰ внизу справа.', 'Выберите «Поделиться» (или «На экран „Домой“», если такой пункт есть сразу).', 'В списке выберите «На экран „Домой“» и нажмите «Добавить».', 'Если пункта нет — нажмите «Скопировать ссылку» ниже и откройте её в Safari.']],
+    ['ios-other', 'iPhone · другой браузер', ['Найдите в меню браузера «Поделиться».', 'Выберите «На экран „Домой“» и нажмите «Добавить».', 'Если пункта нет — нажмите «Скопировать ссылку» ниже и откройте её в Safari: там установка работает всегда.']],
+    ['and-chrome', 'Android · Chrome', ['Нажмите ⋮ в правом верхнем углу.', 'Выберите «Установить приложение» или «Добавить на гл. экран».', 'Подтвердите — «Установить».']],
+    ['and-ya', 'Android · Яндекс Браузер', ['Нажмите ⋮ (или ☰) рядом с адресной строкой.', 'Выберите «Добавить ярлык» / «Добавить на главный экран».', 'Подтвердите — «Добавить».']],
+    ['and-samsung', 'Android · Samsung Internet', ['Нажмите ☰ внизу справа.', 'Выберите «Добавить страницу на» → «Главный экран».', 'Нажмите «Добавить».']],
+    ['and-firefox', 'Android · Firefox', ['Нажмите ⋮ в правом верхнем или нижнем углу.', 'Выберите «Установить» или «Добавить на главный экран».', 'Подтвердите — «Добавить».']],
+    ['and-other', 'Android · другой браузер', ['Откройте меню браузера (⋮ или ☰).', 'Найдите «Добавить на главный экран», «Установить» или «Добавить ярлык».', 'Если пункта нет — нажмите «Скопировать ссылку» ниже и откройте её в Chrome.']],
+    ['inapp', 'Открыто внутри Telegram, WhatsApp и т. п.', ['Встроенный браузер мессенджера не умеет ставить значок.', 'Нажмите «•••» или ⋮ вверху и выберите «Открыть в браузере» (Safari на iPhone, Chrome на Android).', 'Или нажмите «Скопировать ссылку» ниже и вставьте её в браузер. Затем установите по инструкции для этого браузера.']],
+    ['pc', 'Компьютер', ['Chrome, Edge, Яндекс: значок установки ⊕ в правой части адресной строки, или меню → «Установить приложение».', 'Safari на Mac: меню «Файл» → «Добавить в Dock».']]
+  ];
+  var INST = { bar: null };
+  function hideBarUntil() { return +(ls.get('orads_ib') || 0); }
+  function showBar() {
+    if (standalone || INST.bar || Date.now() < hideBarUntil() || $('app').hidden) return;
+    var d = document.createElement('div'); d.className = 'oz-ib';
+    d.innerHTML = '<button class="oz-ib-go"><span>📲</span> Установить на телефон</button><button class="oz-ib-x" aria-label="Скрыть">✕</button>';
+    d.querySelector('.oz-ib-go').onclick = install;
+    d.querySelector('.oz-ib-x').onclick = function () { ls.set('orads_ib', String(Date.now() + 3 * 864e5)); d.remove(); INST.bar = null; document.body.style.paddingBottom = ''; };
+    document.body.appendChild(d); INST.bar = d; document.body.style.paddingBottom = '84px';
+  }
+  function install() {
+    if (deferred) { var e = deferred; deferred = null; e.prompt(); e.userChoice && e.userChoice.then(function (c) { if (c.outcome === 'accepted' && INST.bar) { INST.bar.remove(); INST.bar = null; } }); return; }
+    var cur = detect();
+    var d = document.createElement('div'); d.className = 'oz-sheet';
+    var opts = GUIDES.map(function (g) { return '<option value="' + g[0] + '"' + (g[0] === cur ? ' selected' : '') + '>' + g[1] + '</option>'; }).join('');
+    d.innerHTML = '<div><p class="oz-t" style="font-size:1.2rem">Установить справочник на телефон</p>' +
+      '<p class="oz-p" style="margin:0 0 12px;font-size:.92rem">Значок появится на экране телефона, справочник будет открываться как приложение и работать без интернета.</p>' +
+      '<label class="oz-sl">Ваш браузер<select>' + opts + '</select></label><ol class="oz-st"></ol>' +
+      '<button class="oz-b oz-gh oz-cp">Скопировать ссылку</button><button class="oz-b oz-pr oz-ok">Понятно</button></div>';
+    var sel = d.querySelector('select'), ol = d.querySelector('ol');
+    function fill() { var g = GUIDES.filter(function (x) { return x[0] === sel.value; })[0]; ol.innerHTML = g[2].map(function (t) { return '<li>' + t + '</li>'; }).join(''); }
+    sel.onchange = fill; fill();
+    d.querySelector('.oz-cp').onclick = function () {
+      var u = location.origin + '/', b = this;
+      (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { b.textContent = 'Ссылка скопирована'; }, function () { prompt('Скопируйте ссылку:', u); });
+    };
+    d.querySelector('.oz-ok').onclick = function () { d.remove(); };
+    d.onclick = function (e) { if (e.target === d) d.remove(); };
     document.body.appendChild(d);
-  };
+  }
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; });
+  window.addEventListener('appinstalled', function () { if (INST.bar) { INST.bar.remove(); INST.bar = null; } });
+  if (!standalone) $('bInstall').hidden = false;
+  $('bInstall').onclick = install;
+  // Плашку показываем, когда открыт сам справочник.
+  new MutationObserver(function () { if (!$('app').hidden) showBar(); else if (INST.bar) { INST.bar.remove(); INST.bar = null; } }).observe($('app'), { attributes: true, attributeFilter: ['hidden'] });
   window.addEventListener('online', function () { var p = pass(); if (p) { if (expired(p)) load(); else checkVersion(p); } });
   load();
+  showBar();
 
   // Окно справочника: закрытие свайпом вниз (за полоску или когда окно прокручено к началу).
   (function () {

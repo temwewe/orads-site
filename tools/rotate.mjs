@@ -63,7 +63,7 @@ async function upload(text) {
 const lesson = await api('GET', `/course-item/${LESSON_ID}?fields=${encodeURIComponent('{id,designConcurrencyStamp,designSettings,designSettingsPublished,designHTMLPublished,course{schoolId}}')}`);
 if (lesson.course && lesson.course.schoolId !== SCHOOL_ID) throw new Error('Урок не из школы «Тимофеева онлайн»');
 const m = /@@ORADS:([A-Za-z0-9_-]+)@@/.exec(lesson.designHTMLPublished || '');
-if (!m) throw new Error('В уроке нет метки @@ORADS:...@@');
+if (!m) throw new Error('В уроке нет метки @@ORADS:...@@. Поля урока: ' + JSON.stringify(Object.fromEntries(Object.entries(lesson).map(([k, v]) => [k, typeof v === 'string' ? v.length + ' симв.' : v]))));
 const cur = JSON.parse(fromB64u(m[1]).toString('utf8'));
 const curKey = Buffer.from(cur.k, 'base64');
 

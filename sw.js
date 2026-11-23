@@ -2,7 +2,7 @@
 // Оболочка сайта: сначала сеть, без сети — сохранённая копия.
 // Картинки и шрифты: сохраняем при первом показе.
 // Сам справочник (ответ сервера) хранится не здесь, а в памяти страницы (localStorage) вместе с датой проверки подписки.
-const SHELL = 'orads-shell-v8';
+const SHELL = 'orads-shell-v9';
 const MEDIA = 'orads-media-v1';
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 

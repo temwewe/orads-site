@@ -31,6 +31,32 @@ html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-syst
 .oz-off{position:sticky;top:0;z-index:70;background:#fff4d6;color:#6b5100;text-align:center;font-size:.82rem;padding:6px 10px}
 .oz-sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:90}
 .oz-sheet>div{background:#fff;border-radius:22px 22px 0 0;max-width:520px;width:100%;padding:24px 22px calc(24px + env(safe-area-inset-bottom))}
+.oz-ld{position:fixed;inset:0;z-index:100;background:#F5F5F7;overflow:hidden;transition:opacity .45s ease,filter .45s ease,transform .45s ease}
+.oz-ld.gone{opacity:0;filter:blur(10px);transform:scale(1.03);pointer-events:none}
+.oz-ld .sk-hd{height:calc(64px + env(safe-area-inset-top));background:var(--brand);border-radius:0 0 22px 22px;display:flex;align-items:flex-end;padding:0 22px 18px}
+.oz-ld .sk-hd i{display:block;width:150px;height:14px;border-radius:7px;background:rgba(255,255,255,.28)}
+.oz-ld .sk-in{max-width:760px;margin:0 auto;padding:22px 18px}
+.oz-ld .sk{display:block;border-radius:12px;background:linear-gradient(100deg,#ECE7E7 30%,#F8F5F5 50%,#ECE7E7 70%);background-size:300% 100%;animation:ozSk 1.5s ease-in-out infinite}
+.oz-ld .sk.ye{background-image:linear-gradient(100deg,#F6EED8 30%,#FCF8EC 50%,#F6EED8 70%)}
+.oz-ld .sk.ds{background:none;border:2px dashed #E7DADB;animation:none}
+.oz-ld .sk-g{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+.oz-ld .sk-g .sk{height:118px;border-radius:20px}
+.oz-ld .sk-g .sk:first-child{background-image:linear-gradient(100deg,#EEDDE0 30%,#F9EFF1 50%,#EEDDE0 70%)}
+@keyframes ozSk{from{background-position:100% 0}to{background-position:0 0}}
+.oz-st{position:absolute;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:8px 18px 8px 8px;border-radius:999px;background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);box-shadow:0 8px 30px rgba(74,20,22,.16);white-space:nowrap;animation:ozPill .4s cubic-bezier(.2,.8,.2,1)}
+.oz-er{position:relative;width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center}
+.oz-er img{position:relative;width:32px;height:32px;border-radius:9px;animation:ozBreath 2.4s ease-in-out infinite}
+.oz-er i{position:absolute;inset:0;border-radius:50%;border:2px solid var(--brand);opacity:0;animation:ozRing 2.4s cubic-bezier(.2,.6,.3,1) infinite}
+.oz-er i:nth-child(2){animation-delay:.8s}.oz-er i:nth-child(3){animation-delay:1.6s}
+.oz-st b{font-weight:600;font-size:.95rem;color:var(--ink);transition:opacity .2s}
+.oz-st small{display:block;font-size:.75rem;color:var(--mu);font-weight:500}
+@keyframes ozRing{0%{transform:scale(.6);opacity:.8;border-color:#752b2d}100%{transform:scale(1.7);opacity:0;border-color:#F4B6C2}}
+@keyframes ozBreath{50%{transform:scale(1.06)}}
+@keyframes ozPill{from{opacity:0;transform:translate(-50%,10px)}}
+.oz-chk{position:fixed;top:calc(10px + env(safe-area-inset-top));left:50%;z-index:65;transform:translate(-50%,-8px);opacity:0;display:flex;align-items:center;gap:8px;height:32px;padding:0 14px 0 6px;border-radius:16px;background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:0 2px 12px rgba(74,20,22,.14);font-size:.8rem;font-weight:600;color:var(--brand);transition:opacity .25s ease,transform .35s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.oz-chk.on{opacity:1;transform:translate(-50%,0)}
+.oz-chk .oz-er{width:22px;height:22px;flex-basis:22px}.oz-chk .oz-er img{width:18px;height:18px;border-radius:5px}
+@media (prefers-reduced-motion:reduce){.oz-ld .sk,.oz-er i,.oz-er img{animation:none}}
 .oz-zoom{position:fixed;inset:0;z-index:200;background:#000;touch-action:none;overflow:hidden;opacity:0;transition:opacity .2s}
 .oz-zoom.on{opacity:1}
 .oz-zoom img{position:absolute;left:50%;top:50%;max-width:100vw;max-height:100vh;transform-origin:center;will-change:transform;user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
@@ -48,7 +74,7 @@ html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-syst
 </style>
 </head>
 <body>
-<div id="gate">
+<div id="gate" hidden>
   <div class="oz-hd">TIMOFEEVA-ONLINE</div>
   <div class="oz-box">
     <img class="oz-ic" src="icon-192.png" alt="">
@@ -66,7 +92,7 @@ html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-syst
   <div class="oz-ft"><span id="who"></span><button id="bInstall" hidden>📲 Установить на телефон</button><button id="bOut">Выйти</button></div>
 </div>
 <script>
-window.onerror = function (m, src, line) { var g = document.getElementById('gMsg'); if (g) g.textContent = 'Ошибка: ' + m + ' (' + line + ')'; };
+window.onerror = function (m, src, line) { var g = document.getElementById('gMsg'); if (g) { g.textContent = 'Ошибка: ' + m + ' (' + line + ')'; document.getElementById('gate').hidden = false; } };
 </script>
 <script>
 (function () {
@@ -100,13 +126,13 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
 
   function gate(msg, opts) {
     opts = opts || {};
-    $('app').hidden = true; $('gate').hidden = false;
+    loaderDone(); $('app').hidden = true; $('gate').hidden = false;
     $('gMsg').textContent = msg;
     $('gLogin').hidden = !opts.login; $('gHint').hidden = !opts.login;
     $('gBuy').hidden = !opts.buy; $('gRetry').hidden = !opts.retry;
   }
   function show(html, offline) {
-    $('gate').hidden = true; $('app').hidden = false;
+    $('gate').hidden = true; $('app').hidden = false; loaderDone();
     $('offBar').hidden = !offline;
     var box = $('appBody');
     box.innerHTML = html;
@@ -124,13 +150,50 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
     var list = Object.keys(urls);
     if (list.length) navigator.serviceWorker.ready.then(function (r) { if (r.active) r.active.postMessage({ precache: list }); }).catch(function () {});
   }
+  // Экран загрузки: силуэт справочника с бликом + плашка с «эхо» вокруг значка (как в групповом чате).
+  var LD = null;
+  function loader(text, sub) {
+    if (!LD) {
+      LD = document.createElement('div'); LD.className = 'oz-ld';
+      LD.innerHTML = '<div class="sk-hd"><i></i></div><div class="sk-in">' +
+        '<i class="sk" style="width:46%;height:22px"></i>' +
+        '<i class="sk ye" style="height:84px;margin-top:22px;border-radius:18px"></i>' +
+        '<i class="sk" style="width:40%;height:20px;margin-top:26px"></i>' +
+        '<i class="sk ds" style="height:96px;margin-top:14px;border-radius:18px"></i>' +
+        '<div class="sk-g"><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i></div></div>' +
+        '<div class="oz-st"><span class="oz-er"><i></i><i></i><i></i><img src="icon-192.png" alt=""></span><span><b></b><small></small></span></div>';
+      document.body.appendChild(LD);
+      LD.t0 = Date.now();
+      LD.slow = setTimeout(function () { if (LD) LD.querySelector('small').textContent = 'Медленный интернет, ещё немного…'; }, 12000);
+    }
+    LD.querySelector('b').textContent = text;
+    LD.querySelector('small').textContent = sub || '';
+  }
+  function loaderDone() {
+    if (!LD) return;
+    var l = LD; LD = null; clearTimeout(l.slow);
+    setTimeout(function () { l.classList.add('gone'); setTimeout(function () { l.remove(); }, 500); }, Math.max(0, 500 - (Date.now() - l.t0)));
+  }
+  // Тихая проверка обновлений поверх открытого справочника: плашка сверху, только если проверка затянулась.
+  var CHK = null;
+  function checking(on) {
+    if (on) {
+      if (CHK) return;
+      CHK = document.createElement('div'); CHK.className = 'oz-chk';
+      CHK.innerHTML = '<span class="oz-er"><i></i><i></i><i></i><img src="icon-192.png" alt=""></span>Проверяем подписку';
+      document.body.appendChild(CHK);
+      CHK.tm = setTimeout(function () { if (CHK) CHK.classList.add('on'); }, 700);
+    } else if (CHK) {
+      var c = CHK; CHK = null; clearTimeout(c.tm); c.classList.remove('on'); setTimeout(function () { c.remove(); }, 400);
+    }
+  }
   function wipe() { [K.a, K.html, K.v].forEach(ls.del); }
 
   // Нужен новый ключ: один раз сами ведём через урок, дальше — кнопка.
   function needKey(msg) {
     wipe();
     var went = false; try { went = !!sessionStorage.getItem('orads_go'); } catch (e) {}
-    if (!went && navigator.onLine !== false) { try { sessionStorage.setItem('orads_go', '1'); } catch (e) {} location.href = LESSON; return; }
+    if (!went && navigator.onLine !== false) { try { sessionStorage.setItem('orads_go', '1'); } catch (e) {} loader('Обновляем доступ', 'Переходим в школу за новым ключом'); setTimeout(function () { location.href = LESSON; }, 600); return; }
     gate(msg, { login: true, buy: true });
   }
 
@@ -178,13 +241,13 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
     }
     if (html && ls.get(K.v) === p.c) {
       show(html, !online);
-      if (online) precache(html);
-      checkVersion(p);
+      if (online) { precache(html); checking(true); checkVersion(p).then(function () { checking(false); }); }
       return;
     }
-    gate('Открываем справочник…');
+    loader('Проверяем подписку', 'Справочник O-RADS US');
     checkVersion(p).then(function (ok) {
       if (!ok) return;
+      loader('Загружаем справочник', 'Сохраняем на телефон для работы без сети');
       return decryptFrom(p).then(function (h) {
         ls.set(K.html, h); ls.set(K.v, p.c);
         show(h, false); precache(h);

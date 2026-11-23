@@ -2,7 +2,7 @@
 // Оболочка сайта: сначала сеть, без сети — сохранённая копия.
 // Картинки и шрифты: сохраняем при первом показе.
 // Сам справочник (ответ сервера) хранится не здесь, а в памяти страницы (localStorage) вместе с датой проверки подписки.
-const SHELL = 'orads-shell-v5';
+const SHELL = 'orads-shell-v6';
 const MEDIA = 'orads-media-v1';
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
@@ -31,7 +31,8 @@ self.addEventListener('fetch', (e) => {
   // Страница и файлы сайта: сеть, при ошибке — копия.
   if (url.origin === location.origin) {
     e.respondWith(
-      fetch(req)
+      // no-cache: GitHub отдаёт файлы с кэшем на 10 минут — всегда сверяемся с сервером, чтобы обновления доходили сразу.
+      fetch(req.mode === 'navigate' ? new Request(url.href, { cache: 'no-cache', credentials: 'same-origin' }) : new Request(req, { cache: 'no-cache' }))
         .then((r) => {
           if (r.ok) caches.open(SHELL).then((c) => c.put(req, r.clone()));
           return r;

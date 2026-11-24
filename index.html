@@ -255,7 +255,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   function needKey(msg) {
     wipe();
     var went = false; try { went = !!sessionStorage.getItem('orads_go'); } catch (e) {}
-    if (!went && navigator.onLine !== false) { try { sessionStorage.setItem('orads_go', '1'); } catch (e) {} loader('Обновляем доступ', 'Переходим в школу за новым ключом'); setTimeout(function () { location.href = LESSON; }, 600); return; }
+    if (!went && navigator.onLine !== false) { try { sessionStorage.setItem('orads_go', '1'); } catch (e) {} loader('Обновляем доступ', 'Переходим в школу за новым ключом'); setTimeout(function () { location.href = LESSON; }, 600); setTimeout(function () { gate(msg, { login: true, buy: true }); }, 7000); return; }
     gate(msg, { login: true, buy: true });
   }
 

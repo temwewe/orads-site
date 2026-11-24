@@ -1,0 +1,42 @@
+name: Выкладка в Яндекс Облако
+# Копирует сайт в бакет Object Storage orads.timofeeva-online.ru.
+# Работает, только когда в секретах репозитория есть YC_KEY_ID и YC_SECRET.
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ['Смена ключа справочника']   # коммиты робота не запускают push-события
+    types: [completed]
+  workflow_dispatch: {}
+concurrency:
+  group: deploy-yc
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.YC_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_SECRET }}
+      AWS_DEFAULT_REGION: ru-central1
+      B: s3://orads.timofeeva-online.ru
+      EP: --endpoint-url=https://storage.yandexcloud.net
+    steps:
+      - name: Есть ли ключи
+        id: k
+        run: if [ -n "$AWS_ACCESS_KEY_ID" ]; then echo "ok=1" >> $GITHUB_OUTPUT; else echo "Нет секретов YC_KEY_ID/YC_SECRET — пропускаю"; fi
+      - uses: actions/checkout@v4
+        if: steps.k.outputs.ok
+        with:
+          ref: main
+      - name: Загрузить файлы
+        if: steps.k.outputs.ok
+        run: |
+          set -e
+          NC="no-cache, max-age=0"
+          up() { aws $EP s3 cp "$1" "$B/$1" --content-type "$2" --cache-control "$3"; }
+          up index.html 'text/html; charset=utf-8' "$NC"
+          up sw.js 'application/javascript; charset=utf-8' "$NC"
+          up version.json 'application/json; charset=utf-8' "$NC"
+          up manifest.webmanifest 'application/manifest+json' "$NC"
+          for f in icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png; do up "$f" image/png 'public, max-age=86400'; done
+          aws $EP s3 ls "$B/"

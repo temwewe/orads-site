@@ -95,6 +95,48 @@ html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-syst
 window.onerror = function (m, src, line) { var g = document.getElementById('gMsg'); if (g) { g.textContent = 'Ошибка: ' + m + ' (' + line + ')'; document.getElementById('gate').hidden = false; } };
 </script>
 <script>
+/* Замер скорости: orads.timofeeva-online.ru/#diag — показывает, сколько занял каждый шаг загрузки. Ничего не отправляет. */
+(function () {
+  try {
+    var ss = sessionStorage, on = location.hash.indexOf('diag') >= 0 || ss.getItem('oz_diag');
+    if (!on) return;
+    var now = Date.now();
+    if (!ss.getItem('oz_diag')) { ss.setItem('oz_diag', '1'); ss.setItem('oz_diag_t0', String(now - Math.round(performance.now()))); }
+    var t0 = +ss.getItem('oz_diag_t0'), visits = (+ss.getItem('oz_diag_n') || 0) + 1; ss.setItem('oz_diag_n', String(visits));
+    function ms(v) { return v >= 1000 ? (v / 1000).toFixed(1) + ' с' : Math.round(v) + ' мс'; }
+    function show(why) {
+      if (document.getElementById('ozDiag')) return;
+      var n = performance.getEntriesByType('navigation')[0] || {}, rows = [];
+      rows.push(['Заход на сайт №' + visits + ' в этой вкладке', '']);
+      rows.push(['Всего с первого открытия', ms(Date.now() - t0)]);
+      rows.push(['Эта страница: всего', ms(performance.now())]);
+      if (n.domainLookupEnd) rows.push(['Поиск адреса (DNS)', ms(n.domainLookupEnd - n.domainLookupStart)]);
+      if (n.connectEnd) rows.push(['Соединение', ms(n.connectEnd - n.connectStart)]);
+      if (n.responseStart) rows.push(['Ответ сервера', ms(n.responseStart - n.requestStart)]);
+      if (n.responseEnd) rows.push(['Загрузка страницы', ms(n.responseEnd - n.responseStart)]);
+      rows.push(['Офлайн-режим подключён', navigator.serviceWorker && navigator.serviceWorker.controller ? 'есть' : 'нет']);
+      performance.getEntriesByType('resource').forEach(function (r) {
+        if (r.duration < 150) return;
+        var u = r.name.replace(/^https?:\/\//, '').replace(/\?.*/, ''); if (u.length > 46) u = u.slice(0, 22) + '…' + u.slice(-22);
+        rows.push([u, ms(r.duration)]);
+      });
+      rows.push(['Причина показа', why]);
+      var d = document.createElement('div'); d.id = 'ozDiag';
+      d.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#fff;color:#111;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.25);padding:12px 14px;font:13px/1.35 -apple-system,system-ui,sans-serif;max-height:80vh;overflow:auto';
+      d.innerHTML = '<b style="font-size:15px">Замер скорости</b> <button style="float:right;border:0;background:#eee;border-radius:8px;padding:4px 10px" onclick="sessionStorage.removeItem(\'oz_diag\');this.parentNode.remove()">✕</button><table style="width:100%;margin-top:8px;border-collapse:collapse">' +
+        rows.map(function (r) { return '<tr><td style="padding:3px 0;border-top:1px solid #eee">' + r[0] + '</td><td style="text-align:right;white-space:nowrap;padding-left:8px;border-top:1px solid #eee"><b>' + r[1] + '</b></td></tr>'; }).join('') +
+        '</table><div style="color:#777;margin-top:8px">Сделайте скриншот и пришлите.</div>';
+      document.body.appendChild(d);
+    }
+    var iv = setInterval(function () {
+      var app = document.getElementById('app');
+      if (app && !app.hidden) { clearInterval(iv); setTimeout(function () { show('справочник открыт'); }, 800); }
+    }, 200);
+    setTimeout(function () { clearInterval(iv); show('прошло 40 с'); }, 40000);
+  } catch (e) {}
+})();
+</script>
+<script>
 (function () {
   // Как это работает:
   // 1) Урок в школе (доступ проверяет Prodamus) отправляет сюда ссылку #a=<пропуск>: ключ, адрес зашифрованного файла, версия.

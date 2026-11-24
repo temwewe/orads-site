@@ -68,7 +68,7 @@ html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-syst
 .oz-ib-x{border:0;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:14px;cursor:pointer}
 .oz-sl{display:block;font-size:.85rem;color:var(--mu);margin:4px 0 6px}
 .oz-sl select{display:block;width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1px solid #ddd;background:#fff;font-family:inherit;font-weight:600;font-size:1rem;color:var(--ink)}
-.oz-st{padding-left:22px;margin:12px 0 6px}.oz-st li{margin:8px 0;line-height:1.45}
+.oz-steps{padding-left:22px;margin:12px 0 6px}.oz-steps li{margin:8px 0;line-height:1.45}
 .oz-sheet>div{max-height:88vh;overflow-y:auto}
 .oz-sheet ol{padding-left:20px;margin:10px 0 0}.oz-sheet li{margin:6px 0}
 </style>
@@ -305,7 +305,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
     var opts = GUIDES.map(function (g) { return '<option value="' + g[0] + '"' + (g[0] === cur ? ' selected' : '') + '>' + g[1] + '</option>'; }).join('');
     d.innerHTML = '<div><p class="oz-t" style="font-size:1.2rem">Установить справочник на телефон</p>' +
       '<p class="oz-p" style="margin:0 0 12px;font-size:.92rem">Значок появится на экране телефона, справочник будет открываться как приложение и работать без интернета.</p>' +
-      '<label class="oz-sl">Ваш браузер<select>' + opts + '</select></label><ol class="oz-st"></ol>' +
+      '<label class="oz-sl">Ваш браузер<select>' + opts + '</select></label><ol class="oz-steps"></ol>' +
       '<button class="oz-b oz-gh oz-cp">Скопировать ссылку</button><button class="oz-b oz-pr oz-ok">Понятно</button></div>';
     var sel = d.querySelector('select'), ol = d.querySelector('ol');
     function fill() { var g = GUIDES.filter(function (x) { return x[0] === sel.value; })[0]; ol.innerHTML = g[2].map(function (t) { return '<li>' + t + '</li>'; }).join(''); }

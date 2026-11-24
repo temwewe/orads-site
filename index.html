@@ -70,6 +70,8 @@ html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-syst
 .oz-sl select{display:block;width:100%;margin-top:6px;padding:12px;border-radius:12px;border:1px solid #ddd;background:#fff;font-family:inherit;font-weight:600;font-size:1rem;color:var(--ink)}
 .oz-steps{padding-left:22px;margin:12px 0 6px}.oz-steps li{margin:8px 0;line-height:1.45}
 .oz-sheet>div{max-height:88vh;overflow-y:auto}
+body.oz-appmode .oz-ft,body.oz-appmode .oz-ib{display:none}
+body.oz-appmode{padding-bottom:0 !important}
 .oz-sheet ol{padding-left:20px;margin:10px 0 0}.oz-sheet li{margin:6px 0}
 </style>
 </head>
@@ -173,9 +175,27 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
     $('gLogin').hidden = !opts.login; $('gHint').hidden = !opts.login;
     $('gBuy').hidden = !opts.buy; $('gRetry').hidden = !opts.retry;
   }
+  // Данные для вкладки «Профиль» и плашки «Нет сети» внутри справочника.
+  function appData(offline) {
+    var p = pass() || {};
+    window.OZAPP = { offline: !!offline, exp: p.exp || null, c: p.c || null, buy: 'https://store.timofeeva-online.ru/orads-pay',
+      school: 'https://school.timofeeva-online.ru/', standalone: !!standalone, install: function () { install(); } };
+  }
+  function setOffline(off) {
+    if (!window.OZAPP) return;
+    window.OZAPP.offline = off;
+    if (!APPMODE) $('offBar').hidden = !off;
+    try { window.dispatchEvent(new Event('ozapp')); } catch (e) {}
+  }
+  window.addEventListener('offline', function () { setOffline(true); });
+  window.addEventListener('online', function () { setOffline(false); });
+  var APPMODE = false; // новый справочник с нижними вкладками: шапку, «Нет сети» и профиль рисует он сам
   function show(html, offline) {
     $('gate').hidden = true; $('app').hidden = false; loaderDone();
-    $('offBar').hidden = !offline;
+    APPMODE = html.indexOf('id="ozTabs"') >= 0;
+    document.body.classList.toggle('oz-appmode', APPMODE);
+    appData(offline);
+    $('offBar').hidden = APPMODE || !offline;
     var box = $('appBody');
     box.innerHTML = html;
     box.querySelectorAll('script').forEach(function (o) {
@@ -333,7 +353,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   var INST = { bar: null };
   function hideBarUntil() { return +(ls.get('orads_ib') || 0); }
   function showBar() {
-    if (standalone || INST.bar || Date.now() < hideBarUntil() || $('app').hidden) return;
+    if (APPMODE || standalone || INST.bar || Date.now() < hideBarUntil() || $('app').hidden) return;
     var d = document.createElement('div'); d.className = 'oz-ib';
     d.innerHTML = '<button class="oz-ib-go"><span>📲</span> Установить на телефон</button><button class="oz-ib-x" aria-label="Скрыть">✕</button>';
     d.querySelector('.oz-ib-go').onclick = install;

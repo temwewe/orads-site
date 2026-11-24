@@ -162,7 +162,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   // Пропуск из урока
   var m = location.hash.match(/[#&]a=([A-Za-z0-9_-]+)/);
   if (m) {
-    try { var p = JSON.parse(new TextDecoder().decode(b64u(m[1]))); if (p.k && p.f && p.c) ls.set(K.a, JSON.stringify(p)); } catch (e) {}
+    try { var p = JSON.parse(new TextDecoder().decode(b64u(m[1]))); if (p.k && p.f && p.c) { ls.set(K.a, JSON.stringify(p)); if (typeof p.n === 'string') ls.set('orads_name', p.n.slice(0, 60)); } } catch (e) {}
     try { sessionStorage.removeItem('orads_go'); } catch (e) {}
     history.replaceState(null, '', location.pathname + location.search);
   }
@@ -179,7 +179,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   function appData(offline) {
     var p = pass() || {};
     window.OZAPP = { offline: !!offline, exp: p.exp || null, c: p.c || null, buy: 'https://store.timofeeva-online.ru/orads-pay',
-      school: 'https://school.timofeeva-online.ru/', standalone: !!standalone, install: function () { install(); } };
+      school: 'https://school.timofeeva-online.ru/', support: 'https://school.timofeeva-online.ru/?go=support', name: ls.get('orads_name') || '', standalone: !!standalone, install: function () { install(); } };
   }
   function setOffline(off) {
     if (!window.OZAPP) return;

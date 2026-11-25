@@ -2,7 +2,7 @@
 // Оболочка сайта: сначала сеть, без сети — сохранённая копия.
 // Картинки и шрифты: сохраняем при первом показе.
 // Сам справочник (ответ сервера) хранится не здесь, а в памяти страницы (localStorage) вместе с датой проверки подписки.
-const SHELL = 'orads-shell-v22';
+const SHELL = 'orads-shell-v23';
 const MEDIA = 'orads-media-v1';
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
@@ -24,7 +24,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
 
   // Версия ключа — только сеть.
-  if (url.origin === location.origin && url.pathname.endsWith('/version.json')) return;
+  if (url.origin === location.origin && (url.pathname.endsWith('/version.json') || url.pathname.endsWith('/access.json'))) return;
   // Зашифрованный справочник с Prodamus не кэшируем: расшифрованная копия хранится в памяти страницы.
   if (url.hostname === 'con.xl.ru' && url.pathname.includes('/files/')) return;
 

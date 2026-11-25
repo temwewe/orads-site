@@ -146,6 +146,8 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   //    В пропуске и дата окончания подписки (exp) — до неё справочник работает со значка, в том числе без сети.
   // 3) Робот раз в 3 дня меняет ключ и файл (пересланная ссылка перестаёт работать). Расшифрованная копия у врача остаётся.
   //    Новая версия справочника (c в version.json) или конец подписки → сайт ведёт за свежим пропуском через урок.
+  // 4) Пропуск живёт 2 дня (r), потом сайт сам заходит за новым в урок. Робот каждые 10 минут выкладывает access.json —
+  //    хэши номеров учеников с подпиской; при открытии с интернетом сайт ищет в нём себя (s — номер ученика из пропуска).
   var LESSON = 'https://school.timofeeva-online.ru/learn/MsUmf5w010u7GnQxUhiGHg/theory?app=1';
   var K = { a: 'orads_a', html: 'orads_html', v: 'orads_hv' };
   var ls = {
@@ -277,38 +279,85 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   }
 
   var GRACE = 3 * 864e5; // запас после окончания подписки, если нет интернета
-  function expired(p) { return p.exp && Date.now() > Date.parse(p.exp); }
-  function deadOffline(p) { return p.exp && Date.now() > Date.parse(p.exp) + GRACE; }
+  // Часы. Без сети берём самое позднее время, которое видели (перевод часов назад не продлевает подписку).
+  // С сетью — время сервера (заодно исправляет часы, если когда-то они убегали вперёд).
+  function now() {
+    var lt = +ls.get('orads_lt') || 0, t = Date.now();
+    if (t > lt) { ls.set('orads_lt', String(t)); return t; }
+    return lt;
+  }
+  function seeServer(r) { try { var d = Date.parse(r.headers.get('Date')); if (d) ls.set('orads_lt', String(d)); } catch (e) {} }
+  function expired(p) { return p.exp && now() > Date.parse(p.exp); }
+  // Без интернета справочник работает не дольше 5 дней после срока пропуска (≈ неделя с последней проверки) и 3 дней после конца подписки.
+  var OFFLINE_MAX = 5 * 864e5;
+  function deadOffline(p) { var t = now(); return (p.exp && t > Date.parse(p.exp) + GRACE) || (p.r && t > Date.parse(p.r) + OFFLINE_MAX); }
+  // Пропуск живёт 2 дня (r): потом при открытии с интернетом незаметно заходим за новым в урок, где подписку проверяет Prodamus.
+  function renewDue(p) { return !p.r || now() > Date.parse(p.r); }
 
+  // Ответ проверок: 'ok' — можно работать, 'off' — сети нет, 'stop' — доступ закрыт (экран уже показан).
   // version.json: {c: версия справочника, v: версия ключа}. Новая версия справочника → нужен свежий пропуск из урока.
   function checkVersion(p) {
-    return withTimeout('version.json?t=' + Date.now(), 15000).then(function (r) { return r.ok ? r.json() : null; })
+    return withTimeout('version.json?t=' + Date.now(), 15000).then(function (r) { seeServer(r); return r.ok ? r.json() : null; })
       .then(function (j) {
-        if (j && j.c && j.c > (ls.get(K.v) || p.c || '')) { needKey('Вышло обновление справочника. Откройте его через школу.'); return false; }
-        return true;
-      })
-      .catch(function () { return true; }); // нет сети — работаем с копией
+        if (j && j.c && j.c > (ls.get(K.v) || p.c || '')) { needKey('Вышло обновление справочника. Откройте его через школу.'); return 'stop'; }
+        return 'ok';
+      }, function () { return 'off'; });
+  }
+  // access.json: робот каждые 10 минут выкладывает, у кого сейчас есть подписка (t — когда, h — хэши номеров учеников).
+  // Ученика нет в свежем списке → справочник стирается. Список старше 3 часов или старше пропуска не учитываем.
+  function sidHash(s) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode('orads:' + s)).then(function (b) {
+      return Array.prototype.map.call(new Uint8Array(b).slice(0, 8), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+    });
+  }
+  function checkAccess(p) {
+    return withTimeout('access.json?t=' + Date.now(), 15000).then(function (r) { seeServer(r); return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!p.s || !j || !j.t || !Array.isArray(j.h)) return 'ok';
+        var t = Date.parse(j.t);
+        if (now() - t > 3 * 36e5 || (p.i && t < Date.parse(p.i))) return 'ok';
+        return sidHash(p.s).then(function (h) {
+          if (j.h.indexOf(h) >= 0) return 'ok';
+          wipe(); gate('Подписка на справочник не активна. Если вы её только что продлили, откройте справочник через школу.', { login: true, buy: true });
+          return 'stop';
+        });
+      }, function () { return 'off'; });
+  }
+  function verify(p) { return checkAccess(p).then(function (a) { return a === 'ok' ? checkVersion(p) : a; }); }
+
+  // Пропуск устарел: один раз сами ведём через урок (копия справочника остаётся), дальше — кнопка.
+  function renew() {
+    var went = false; try { went = !!sessionStorage.getItem('orads_go'); } catch (e) {}
+    if (!went) { try { sessionStorage.setItem('orads_go', '1'); } catch (e) {} loader('Проверяем подписку', 'Переходим в школу'); setTimeout(function () { location.href = LESSON; }, 300); setTimeout(function () { gate('Чтобы продолжить, подтвердите подписку: откройте справочник через школу.', { login: true, buy: true }); }, 7000); return; }
+    gate('Чтобы продолжить, подтвердите подписку: откройте справочник через школу.', { login: true, buy: true });
   }
 
   function load() {
     var p = pass();
     if (!p) return gate('Справочник доступен по подписке. Откройте его через личный кабинет школы.', { login: true, buy: true });
     var html = ls.get(K.html);
+    var ready = !!html && ls.get(K.v) === p.c;
     var online = navigator.onLine !== false;
-    if (expired(p)) {
-      if (online) return needKey('Срок подписки закончился. Если вы её продлили, откройте справочник через школу.');
-      if (html && !deadOffline(p)) return show(html, true);
-      wipe();
-      return gate('Срок подписки закончился. Подключитесь к интернету и откройте справочник через школу.', { login: true, buy: true });
+    if (!online) {
+      if (deadOffline(p)) { if (expired(p)) wipe(); return gate(expired(p) ? 'Срок подписки закончился. Подключитесь к интернету и откройте справочник через школу.' : 'Давно не было проверки подписки. Подключитесь к интернету, чтобы продолжить.', { login: !!expired(p), buy: !!expired(p), retry: !expired(p) }); }
+      if (expired(p) && !html) return gate('Срок подписки закончился. Подключитесь к интернету и откройте справочник через школу.', { login: true, buy: true });
+      if (html) return show(html, true);
+      return gate('Нет интернета. Подключитесь, чтобы загрузить справочник в первый раз.', { retry: true });
     }
-    if (html && ls.get(K.v) === p.c) {
-      show(html, !online);
-      if (online) { precache(html); checking(true); checkVersion(p).then(function () { checking(false); }); }
+    if (expired(p)) return needKey('Срок подписки закончился. Если вы её продлили, откройте справочник через школу.');
+    if (ready && !renewDue(p)) {
+      show(html, false); precache(html); checking(true);
+      verify(p).then(function (r) { checking(false); if (r === 'off') setOffline(true); });
       return;
     }
     loader('Проверяем подписку', 'Справочник O-RADS US');
-    checkVersion(p).then(function (ok) {
-      if (!ok) return;
+    verify(p).then(function (r) {
+      if (r === 'stop') return;
+      if (r === 'off') {
+        if (html && !deadOffline(p)) return show(html, true);
+        return gate('Нет связи с сервером. Проверьте интернет и нажмите «Попробовать ещё раз».', { retry: true });
+      }
+      if (renewDue(p)) return renew();
       loader('Загружаем справочник', 'Сохраняем на телефон для работы без сети');
       return decryptFrom(p).then(function (h) {
         ls.set(K.html, h); ls.set(K.v, p.c);
@@ -386,7 +435,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   $('bInstall').onclick = install;
   // Плашку показываем, когда открыт сам справочник.
   new MutationObserver(function () { if (!$('app').hidden) showBar(); else if (INST.bar) { INST.bar.remove(); INST.bar = null; } }).observe($('app'), { attributes: true, attributeFilter: ['hidden'] });
-  window.addEventListener('online', function () { var p = pass(); if (p) { if (expired(p)) load(); else checkVersion(p); } });
+  window.addEventListener('online', function () { var p = pass(); if (p) { if (expired(p) || renewDue(p) || $('app').hidden) load(); else verify(p); } });
   // Демо анимаций: orads.timofeeva-online.ru/#demo — показывает экраны загрузки по очереди, данные не трогает.
   if (location.hash === '#demo') {
     history.replaceState(null, '', location.pathname);

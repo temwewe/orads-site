@@ -1,0 +1,36 @@
+name: Список подписчиков справочника
+# Каждые 10 минут спрашивает Prodamus, у кого сейчас есть доступ к справочнику,
+# и выкладывает access.json (только хэши номеров учеников) прямо в бакет сайта, без коммита.
+on:
+  push:
+    branches: [claude/project-thread-lqz9vs]   # ВРЕМЕННО для проверки
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Выложить, даже если список резко сократился'
+        type: boolean
+        default: false
+concurrency:
+  group: access
+  cancel-in-progress: false
+jobs:
+  access:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.YC_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_SECRET }}
+      AWS_DEFAULT_REGION: ru-central1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/access.mjs
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          FORCE: ${{ inputs.force && '1' || '' }}
+      - name: Выложить в бакет
+        run: aws --endpoint-url=https://storage.yandexcloud.net s3 cp access.json s3://orads.timofeeva-online.ru/access.json --content-type 'application/json; charset=utf-8' --cache-control 'no-cache, max-age=0'

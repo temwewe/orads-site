@@ -1,5 +1,5 @@
-// Разовая правка блока в уроке «Справочник O-RADS US»: в пропуск добавляются номер ученика (s), время выдачи (i)
-// и срок обновления пропуска (r = +2 дня). Запуск: workflow «Правка урока справочника» (DRY=1 — только показать).
+// Разовая правка блока в уроке «Справочник O-RADS US». Первая версия (25.11) добавила в пропуск s, i, r;
+// эта — личный ключ ученика t. Запуск: workflow «Правка урока справочника» (DRY=1 — только показать).
 // REVERT=1 — убрать правку. Проверяет, что урок из школы «Тимофеева онлайн».
 const API = 'https://app.xl.ru/api/v1';
 const LESSON_ID = 'MsUmf5w010u7GnQxUhiGHg';
@@ -13,11 +13,11 @@ async function api(method, path, body) {
   return j.body;
 }
 // Замены без двойных кавычек, переносов строк, < > & — чтобы они одинаково совпадали в HTML и в JSON дерева редактора.
-const ME = "function ozMe() { if (ozMe.p) return ozMe.p; var t = (document.cookie.match(/student_access_token=([^;]+)/) || [])[1]; ozMe.p = !t ? Promise.resolve() : fetch('/api/v1/authorization/me?fields=' + encodeURIComponent('{id}'), { headers: { Accept: 'application/json', Authorization: 'Bearer ' + decodeURIComponent(t) } }).then(function (r) { return r.json(); }).then(function (j) { ozMe.s = ((j || {}).body || {}).id || ''; }).catch(function () {}); return ozMe.p; } ";
 const PAIRS = [
-  // В уроке уже есть обёртка go → NMP (имя и почта) → go2; встраиваемся перед go2.
-  ['function go2(exp) {', ME + 'function go2(exp) { return ozMe().then(function () { go3(exp); }); } function go3(exp) {'],
-  ['exp: exp', "exp: exp, s: ozMe.s || '', i: new Date().toISOString(), r: new Date(Date.now() + 1728e5).toISOString()"],
+  // 25.11 вечер: в пропуск — личный ключ ученика (t), чтобы сайт спрашивал школу о доступе напрямую.
+  // и ключ продления (rt): по нему сайт сам получает свежий ключ, когда часовой истечёт (ключ продления у Prodamus не меняется).
+  ["ozMe.p = !t ? Promise.resolve() :", "ozMe.t = t ? decodeURIComponent(t) : ''; ozMe.rt = decodeURIComponent((document.cookie.match(/student_refresh_token=([^;]+)/) || [])[1] || ''); ozMe.p = !t ? Promise.resolve() :"],
+  ["s: ozMe.s || '',", "s: ozMe.s || '', t: ozMe.t || '', rt: ozMe.rt || '',"],
 ];
 const count = (s, x) => s.split(x).length - 1;
 const F = ['designSettings', 'designSettingsPublished', 'designHTMLPublished'];

@@ -15,7 +15,8 @@ async function api(method, path, body) {
 // Замены без двойных кавычек, переносов строк, < > & — чтобы они одинаково совпадали в HTML и в JSON дерева редактора.
 const ME = "function ozMe() { if (ozMe.p) return ozMe.p; var t = (document.cookie.match(/student_access_token=([^;]+)/) || [])[1]; ozMe.p = !t ? Promise.resolve() : fetch('/api/v1/authorization/me?fields=' + encodeURIComponent('{id}'), { headers: { Accept: 'application/json', Authorization: 'Bearer ' + decodeURIComponent(t) } }).then(function (r) { return r.json(); }).then(function (j) { ozMe.s = ((j || {}).body || {}).id || ''; }).catch(function () {}); return ozMe.p; } ";
 const PAIRS = [
-  ['function go(exp) {', ME + 'function go(exp) { return ozMe().then(function () { go2(exp); }); } function go2(exp) {'],
+  // В уроке уже есть обёртка go → NMP (имя и почта) → go2; встраиваемся перед go2.
+  ['function go2(exp) {', ME + 'function go2(exp) { return ozMe().then(function () { go3(exp); }); } function go3(exp) {'],
   ['exp: exp', "exp: exp, s: ozMe.s || '', i: new Date().toISOString(), r: new Date(Date.now() + 1728e5).toISOString()"],
 ];
 const count = (s, x) => s.split(x).length - 1;

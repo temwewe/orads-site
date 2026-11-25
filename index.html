@@ -344,7 +344,11 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
       if (html) return show(html, true);
       return gate('Нет интернета. Подключитесь, чтобы загрузить справочник в первый раз.', { retry: true });
     }
-    if (expired(p)) return needKey('Срок подписки закончился. Если вы её продлили, откройте справочник через школу.');
+    if (expired(p)) {
+      // Сначала сверяем часы с сервером: вдруг на телефоне время убежало вперёд.
+      if (!load.synced) { load.synced = 1; return withTimeout('version.json?t=' + Date.now(), 15000).then(seeServer, function () {}).then(load); }
+      return needKey('Срок подписки закончился. Если вы её продлили, откройте справочник через школу.');
+    }
     if (ready && !renewDue(p)) {
       show(html, false); precache(html); checking(true);
       verify(p).then(function (r) { checking(false); if (r === 'off') setOffline(true); });

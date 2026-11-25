@@ -1,34 +1,54 @@
 name: Список подписчиков справочника
 # Каждые 10 минут спрашивает Prodamus, у кого сейчас есть доступ к справочнику,
 # и выкладывает access.json (только хэши номеров учеников) прямо в бакет сайта, без коммита.
+# Расписание GitHub опаздывает на часы, поэтому один запуск сам крутится ~5 ч 40 мин (проверка каждые 10 мин),
+# а в конце запускает себя заново. Расписание раз в час — запасной вариант, если цепочка прервётся.
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '7 * * * *'
   workflow_dispatch:
     inputs:
       force:
         description: 'Выложить, даже если список резко сократился'
         type: boolean
         default: false
+permissions:
+  contents: read
+  actions: write
 concurrency:
   group: access
   cancel-in-progress: false
 jobs:
   access:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 350
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.YC_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_SECRET }}
       AWS_DEFAULT_REGION: ru-central1
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+      FORCE: ${{ inputs.force && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: node tools/access.mjs
+      - name: Проверять каждые 10 минут
+        run: |
+          end=$(( $(date +%s) + 340*60 ))
+          while :; do
+            if node tools/access.mjs; then
+              aws --endpoint-url=https://storage.yandexcloud.net s3 cp access.json s3://orads.timofeeva-online.ru/access.json \
+                --content-type 'application/json; charset=utf-8' --cache-control 'no-cache, max-age=0' --only-show-errors || echo "Выкладка не удалась"
+            else
+              echo "Проверка не удалась, повторю через 10 минут"
+            fi
+            FORCE=''
+            [ $(( $(date +%s) + 600 )) -lt $end ] || break
+            sleep 600
+          done
+      - name: Запустить себя заново
+        if: always()
         env:
-          API_TOKEN: ${{ secrets.API_TOKEN }}
-          FORCE: ${{ inputs.force && '1' || '' }}
-      - name: Выложить в бакет
-        run: aws --endpoint-url=https://storage.yandexcloud.net s3 cp access.json s3://orads.timofeeva-online.ru/access.json --content-type 'application/json; charset=utf-8' --cache-control 'no-cache, max-age=0'
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run access.yml --ref main -R ${{ github.repository }}

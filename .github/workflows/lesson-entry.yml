@@ -1,0 +1,20 @@
+name: Урок справочника — только вход
+on:
+  push:
+    branches: [claude/project-thread-lqz9vs]   # ВРЕМЕННО: разовый запуск
+    paths: [tools/lesson-entry.mjs, .github/workflows/lesson-entry.yml]
+concurrency:
+  group: rotate
+  cancel-in-progress: false
+jobs:
+  entry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/lesson-entry.mjs
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          DRY: '1'

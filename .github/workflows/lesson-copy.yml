@@ -17,4 +17,3 @@ jobs:
       - run: node tools/lesson-copy.mjs
         env:
           API_TOKEN: ${{ secrets.API_TOKEN }}
-          DRY: '1'

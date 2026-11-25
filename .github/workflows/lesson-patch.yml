@@ -18,4 +18,3 @@ jobs:
       - run: node tools/lesson-patch.mjs
         env:
           API_TOKEN: ${{ secrets.API_TOKEN }}
-          DRY: '1'

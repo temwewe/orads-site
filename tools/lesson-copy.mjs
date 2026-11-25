@@ -21,7 +21,13 @@ if (!L.course || L.course.schoolId !== SCHOOL_ID) throw new Error('Урок не
 const mark = (/@@ORADS:[A-Za-z0-9_-]+@@/.exec(L.designHTMLPublished) || [])[0];
 if (!mark) throw new Error('Нет метки в уроке');
 
-const LOADER = `<div id="ozLc"><div id="ozLcMsg" style="padding:18px 0;color:#6e6e73;font:15px/1.4 -apple-system,system-ui,sans-serif">Загружаем справочник…</div></div>
+const LOADER = `<style>
+/* В уроке справочник встроен в страницу школы: шапку прячем (у школы своя), панели не фиксируем на весь экран, а «прилипаем» внутри блока. */
+#ozLc #oz{padding-top:0;padding-bottom:0;border-radius:16px;overflow:visible}
+#ozLc #oz .tn{display:none}
+#ozLc #oz .bar{position:sticky;top:auto;bottom:calc(var(--tabh) + env(safe-area-inset-bottom))}
+#ozLc #oz .tabs{position:sticky;bottom:0;border-radius:0 0 16px 16px}
+</style><div id="ozLc"><div id="ozLcMsg" style="padding:18px 0;color:#6e6e73;font:15px/1.4 -apple-system,system-ui,sans-serif">Загружаем справочник…</div></div>
 <script>
 (function () {
   // Копия справочника в уроке: скачиваем актуальный зашифрованный файл и показываем здесь. Метку обновляет робот.

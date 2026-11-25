@@ -348,8 +348,12 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   function askSchool(p, token) {
     return sfetch(SCHOOL_API, { headers: { Accept: 'application/json', Authorization: 'Bearer ' + token } }).then(function (r) {
       if (r.status === 401) return 401;
-      if (!r.ok) return 'skip';
-      return r.json().then(function (j) { return j && j.success && j.body && typeof j.body.hasItemAccess === 'boolean' ? (j.body.hasItemAccess ? 'ok' : 'no') : 'skip'; });
+      return r.json().then(function (j) {
+        // Доступ сняли — школа отвечает ошибкой «Доступ запрещен» (accessDenied), а не hasItemAccess: false.
+        if (j && j.success === false && (j.errors || []).some(function (e) { return e && (e.type === 'accessDenied' || e.code === 6); })) return 'no';
+        if (!r.ok) return 'skip';
+        return j && j.success && j.body && typeof j.body.hasItemAccess === 'boolean' ? (j.body.hasItemAccess ? 'ok' : 'no') : 'skip';
+      });
     });
   }
   // Главная проверка: спрашиваем школу личным ключом ученика, есть ли доступ к уроку справочника (как это делает сама школа).

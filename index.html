@@ -146,8 +146,8 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   //    В пропуске и дата окончания подписки (exp) — до неё справочник работает со значка, в том числе без сети.
   // 3) Робот раз в 3 дня меняет ключ и файл (пересланная ссылка перестаёт работать). Расшифрованная копия у врача остаётся.
   //    Новая версия справочника (c в version.json) или конец подписки → сайт ведёт за свежим пропуском через урок.
-  // 4) Пропуск живёт 2 дня (r), потом сайт сам заходит за новым в урок. Робот каждые 10 минут выкладывает access.json —
-  //    хэши номеров учеников с подпиской; при открытии с интернетом сайт ищет в нём себя (s — номер ученика из пропуска).
+  // 4) При каждом открытии и возврате в приложение сайт спрашивает школу личным ключом ученика (t), есть ли доступ.
+  //    Ключ живёт час; новый берём по ключу продления (rt). Запасные проверки: список робота access.json (s) и срок пропуска 2 дня (r).
   var LESSON = 'https://school.timofeeva-online.ru/learn/MsUmf5w010u7GnQxUhiGHg/theory?app=1';
   var K = { a: 'orads_a', html: 'orads_html', v: 'orads_hv' };
   var ls = {
@@ -164,7 +164,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   // Пропуск из урока
   var m = location.hash.match(/[#&]a=([A-Za-z0-9_-]+)/);
   if (m) {
-    try { var p = JSON.parse(new TextDecoder().decode(b64u(m[1]))); if (p.k && p.f && p.c) { ls.set(K.a, JSON.stringify(p)); if (typeof p.n === 'string') ls.set('orads_name', p.n.slice(0, 60)); if (typeof p.e === 'string' && /^[^@\s]+@[^@\s]+$/.test(p.e)) ls.set('orads_email', p.e.slice(0, 120)); } } catch (e) {}
+    try { var p = JSON.parse(new TextDecoder().decode(b64u(m[1]))); if (p.k && p.f && p.c) { ls.set(K.a, JSON.stringify(p)); ls.del('orads_at'); if (typeof p.n === 'string') ls.set('orads_name', p.n.slice(0, 60)); if (typeof p.e === 'string' && /^[^@\s]+@[^@\s]+$/.test(p.e)) ls.set('orads_email', p.e.slice(0, 120)); } } catch (e) {}
     try { sessionStorage.removeItem('orads_go'); } catch (e) {}
     history.replaceState(null, '', location.pathname + location.search);
   }
@@ -251,7 +251,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
       var c = CHK; CHK = null; clearTimeout(c.tm); c.classList.remove('on'); setTimeout(function () { c.remove(); }, 400);
     }
   }
-  function wipe() { [K.a, K.html, K.v].forEach(ls.del); }
+  function wipe() { [K.a, K.html, K.v, 'orads_at'].forEach(ls.del); }
 
   // Нужен новый ключ: один раз сами ведём через урок, дальше — кнопка.
   function needKey(msg) {
@@ -323,7 +323,57 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
         });
       }, function () { return 'off'; });
   }
-  function verify(p) { return checkAccess(p).then(function (a) { return a === 'ok' ? checkVersion(p) : a; }); }
+  // Главная проверка: спрашиваем школу напрямую личным ключом ученика (t из пропуска) — есть ли доступ к уроку справочника.
+  // Ответ: 'ok' / 'stop' (доступа нет) / 'renew' (ключ устарел — нужен заход через школу) / 'skip' (ключа нет или ответ непонятен) / 'off' (нет сети).
+  var SCHOOL = 'https://school.timofeeva-online.ru/api/v1/';
+  var SCHOOL_API = SCHOOL + 'student-course/MsUmf5w010u7GnQxUhiGHg?fields=' + encodeURIComponent('{id}');
+  function sfetch(url, opt, ms) {
+    var ctl = window.AbortController ? new AbortController() : null, tm = setTimeout(function () { if (ctl) ctl.abort(); }, ms || 10000);
+    opt.cache = 'no-store'; if (ctl) opt.signal = ctl.signal;
+    return fetch(url, opt).then(function (r) { clearTimeout(tm); return r; }, function (e) { clearTimeout(tm); throw e; });
+  }
+  // Ключ школы живёт час. Когда истёк — берём новый по ключу продления (rt) без перехода в школу.
+  function refreshToken(p) {
+    if (!p.rt) return Promise.resolve(false);
+    return sfetch(SCHOOL + 'authorization/refresh', { method: 'PUT', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ token: p.rt }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var b = j && j.success && j.body;
+        if (!b || !b.accessToken) return false;
+        ls.set('orads_at', b.accessToken);
+        if (b.refreshToken && b.refreshToken !== p.rt) { p.rt = b.refreshToken; ls.set(K.a, JSON.stringify(p)); }
+        return true;
+      });
+  }
+  function askSchool(p, token) {
+    return sfetch(SCHOOL_API, { headers: { Accept: 'application/json', Authorization: 'Bearer ' + token } }).then(function (r) {
+      if (r.status === 401) return 401;
+      if (!r.ok) return 'skip';
+      return r.json().then(function (j) { return j && j.success && j.body && typeof j.body.hasItemAccess === 'boolean' ? (j.body.hasItemAccess ? 'ok' : 'no') : 'skip'; });
+    });
+  }
+  // Главная проверка: спрашиваем школу личным ключом ученика, есть ли доступ к уроку справочника (как это делает сама школа).
+  // Ответ: 'ok' / 'stop' (доступа нет) / 'renew' (ключи устарели — нужен заход через школу) / 'skip' (ключа нет или ответ непонятен) / 'off' (нет сети).
+  function checkSchool(p) {
+    var token = ls.get('orads_at') || p.t;
+    if (!token) return Promise.resolve('skip');
+    return askSchool(p, token).then(function (a) {
+      if (a !== 401) return a;
+      return refreshToken(p).then(function (ok) { return ok ? askSchool(p, ls.get('orads_at')).then(function (b) { return b === 401 ? 'renew' : b; }) : 'renew'; });
+    }).then(function (a) {
+      if (a !== 'no') return a;
+      wipe(); gate('Подписка на справочник не активна. Если вы её только что продлили, откройте справочник через школу.', { login: true, buy: true });
+      return 'stop';
+    }, function (e) { return e && e.name === 'SyntaxError' ? 'skip' : 'off'; });
+  }
+  function verify(p) {
+    return checkSchool(p).then(function (s) {
+      if (s === 'stop' || s === 'off') return s;
+      if (s === 'renew') { renew(); return 'stop'; }
+      // школа подтвердила — список робота не нужен; иначе — запасная проверка по списку
+      return (s === 'ok' ? Promise.resolve('ok') : checkAccess(p)).then(function (a) { return a === 'ok' ? checkVersion(p) : a; });
+    });
+  }
 
   // Пропуск устарел: один раз сами ведём через урок (копия справочника остаётся), дальше — кнопка.
   function renew() {
@@ -439,16 +489,23 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   $('bInstall').onclick = install;
   // Плашку показываем, когда открыт сам справочник.
   new MutationObserver(function () { if (!$('app').hidden) showBar(); else if (INST.bar) { INST.bar.remove(); INST.bar = null; } }).observe($('app'), { attributes: true, attributeFilter: ['hidden'] });
-  // Повторная проверка, пока справочник открыт: при возврате в приложение и каждые 10 минут (если есть интернет).
+  // Повторная проверка, пока справочник открыт: при возврате в приложение и каждые 10 минут.
+  // Плашку «Нет сети» снимаем по факту ответа сервера, а не по сигналу телефона: телефон часто не сообщает, что сеть вернулась.
   function recheck() {
-    var p = pass(); if (!p || navigator.onLine === false) return;
-    if (expired(p) || renewDue(p) || $('app').hidden) return load();
-    verify(p);
+    var p = pass(); if (!p) return;
+    if ($('app').hidden || expired(p) || renewDue(p)) { if (navigator.onLine === false || LD) return; return load(); }
+    if (recheck.busy) return; recheck.busy = 1;
+    verify(p).then(function (r) { recheck.busy = 0; if (r !== 'stop') setOffline(r === 'off'); }, function () { recheck.busy = 0; });
   }
   window.addEventListener('online', recheck);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') recheck(); });
   window.addEventListener('pageshow', function (e) { if (e.persisted) recheck(); });
   setInterval(function () { if (document.visibilityState === 'visible') recheck(); }, 10 * 6e4);
+  // Пока нет сети (плашка «Нет сети» или экран «Попробовать ещё раз») — пробуем каждые 20 секунд.
+  setInterval(function () {
+    if (document.visibilityState !== 'visible') return;
+    if ((window.OZAPP && window.OZAPP.offline && !$('app').hidden) || (!$('gate').hidden && !$('gRetry').hidden)) recheck();
+  }, 2e4);
   // Демо анимаций: orads.timofeeva-online.ru/#demo — показывает экраны загрузки по очереди, данные не трогает.
   if (location.hash === '#demo') {
     history.replaceState(null, '', location.pathname);

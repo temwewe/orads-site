@@ -439,7 +439,16 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   $('bInstall').onclick = install;
   // Плашку показываем, когда открыт сам справочник.
   new MutationObserver(function () { if (!$('app').hidden) showBar(); else if (INST.bar) { INST.bar.remove(); INST.bar = null; } }).observe($('app'), { attributes: true, attributeFilter: ['hidden'] });
-  window.addEventListener('online', function () { var p = pass(); if (p) { if (expired(p) || renewDue(p) || $('app').hidden) load(); else verify(p); } });
+  // Повторная проверка, пока справочник открыт: при возврате в приложение и каждые 10 минут (если есть интернет).
+  function recheck() {
+    var p = pass(); if (!p || navigator.onLine === false) return;
+    if (expired(p) || renewDue(p) || $('app').hidden) return load();
+    verify(p);
+  }
+  window.addEventListener('online', recheck);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') recheck(); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) recheck(); });
+  setInterval(function () { if (document.visibilityState === 'visible') recheck(); }, 10 * 6e4);
   // Демо анимаций: orads.timofeeva-online.ru/#demo — показывает экраны загрузки по очереди, данные не трогает.
   if (location.hash === '#demo') {
     history.replaceState(null, '', location.pathname);

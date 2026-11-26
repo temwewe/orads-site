@@ -187,7 +187,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   function appData(offline) {
     var p = pass() || {};
     window.OZAPP = { offline: !!offline, exp: p.exp || null, c: p.c || null, buy: 'https://store.timofeeva-online.ru/orads-pay',
-      school: 'https://school.timofeeva-online.ru/', support: 'https://school.timofeeva-online.ru/?go=support', name: ls.get('orads_name') || '', email: ls.get('orads_email') || '', supportForm: 'https://store.timofeeva-online.ru/sw/0qV3eAeyn02sITPVUrUm4Q', standalone: !!standalone, cache: (function () { try { return JSON.parse(ls.get('orads_cache') || 'null'); } catch (e) { return null; } })(), install: function () { install(); } };
+      school: 'https://school.timofeeva-online.ru/', support: 'https://school.timofeeva-online.ru/?go=support', name: ls.get('orads_name') || '', email: ls.get('orads_email') || '', supportForm: 'https://store.timofeeva-online.ru/sw/0qV3eAeyn02sITPVUrUm4Q', standalone: !!standalone, chat: (function () { try { return JSON.parse(ls.get('orads_chat') || 'null'); } catch (e) { return null; } })(), cache: (function () { try { return JSON.parse(ls.get('orads_cache') || 'null'); } catch (e) { return null; } })(), install: function () { install(); } };
   }
   function setOffline(off) {
     if (!window.OZAPP) return;
@@ -284,7 +284,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
       var c = CHK; CHK = null; clearTimeout(c.tm); c.classList.remove('on'); setTimeout(function () { c.remove(); }, 400);
     }
   }
-  function wipe() { [K.a, K.html, K.v, 'orads_at'].forEach(ls.del); }
+  function wipe() { [K.a, K.html, K.v, 'orads_at', 'orads_chat'].forEach(ls.del); }
 
   // Нужен новый ключ: один раз сами ведём через урок, дальше — кнопка.
   function needKey(msg) {
@@ -416,7 +416,51 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
       if (s === 'renew') { renew(); return 'stop'; }
       // школа подтвердила — список робота не нужен; иначе — запасная проверка по списку
       return (s === 'ok' ? Promise.resolve('ok') : checkAccess(p)).then(function (a) { return a === 'ok' ? checkVersion(p) : a; });
-    });
+    }).then(function (r) { if (r === 'ok') chatCheck(p); return r; });
+  }
+
+  // Ответ поддержки: заглядываем в «Чат техподдержки» школы (сервер чата школы, ключ ученика) —
+  // есть ли там непрочитанное сообщение от школы. Автоответ «Получили ваше сообщение…» ответом не считаем.
+  // Результат {n: непрочитанных, i: номер последнего сообщения, x: начало текста} — для точки на «Профиле» и плашки.
+  var CHAT_HUB = 'wss://cht.xl.ru/hub', AUTO_REPLY = /^Здравствуйте! Получили ваше сообщение в поддержку справочника/;
+  function setChat(r) {
+    ls.set('orads_chat', JSON.stringify(r));
+    if (window.OZAPP) { window.OZAPP.chat = r; try { window.dispatchEvent(new Event('ozapp')); } catch (e) {} }
+  }
+  function chatCheck(p) {
+    var token = ls.get('orads_at') || p.t;
+    if (!token || !window.WebSocket || chatCheck.busy || Date.now() - (chatCheck.at || 0) < 2e4) return;
+    chatCheck.busy = 1; chatCheck.at = Date.now();
+    var ws, fin = false, RS = '\u001e';
+    function done(r) {
+      if (fin) return; fin = true; clearTimeout(tm); chatCheck.busy = 0;
+      try { ws.close(); } catch (e) {}
+      if (r) setChat(r);
+    }
+    function call(id, target, args) { ws.send(JSON.stringify({ type: 1, invocationId: id, target: target, arguments: args }) + RS); }
+    var tm = setTimeout(function () { done(null); }, 12000);
+    try { ws = new WebSocket(CHAT_HUB + '?access_token=' + encodeURIComponent(token)); } catch (e) { return done(null); }
+    ws.onopen = function () { ws.send(JSON.stringify({ protocol: 'json', version: 1 }) + RS); };
+    ws.onerror = ws.onclose = function () { done(null); };
+    ws.onmessage = function (e) {
+      String(e.data).split(RS).forEach(function (f) {
+        if (!f || fin) return;
+        var m; try { m = JSON.parse(f); } catch (er) { return; }
+        if (m.error) return done(null);
+        if (m.type === undefined) return call('1', 'Init', []);
+        if (m.type === 7) return done(null);
+        if (m.type !== 3) return;
+        var b = m.result && m.result.success && m.result.body;
+        if (!b) return done(null);
+        if (m.invocationId === '1') return b.conversationId ? call('2', 'GetConversation', [b.conversationId]) : done({ n: 0, i: -1 });
+        if (m.invocationId === '2') {
+          var last = b.lastMessage, a = last && last.author, seen = typeof b.lastSeenMessageIndex === 'number' ? b.lastSeenMessageIndex : -1;
+          var txt = last ? String(last.plainText || last.text || '').replace(/\s+/g, ' ').trim() : '';
+          var fromSchool = !!(last && a && a.type !== 'student' && !AUTO_REPLY.test(txt));
+          done({ n: fromSchool && last.index > seen ? last.index - seen : 0, i: last ? last.index : -1, x: fromSchool ? txt.slice(0, 140) : '' });
+        }
+      });
+    };
   }
 
   // Пропуск устарел: один раз сами ведём через урок (копия справочника остаётся), дальше — кнопка.

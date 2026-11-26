@@ -385,7 +385,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   // Главная проверка: спрашиваем школу напрямую личным ключом ученика (t из пропуска) — есть ли доступ к уроку справочника.
   // Ответ: 'ok' / 'stop' (доступа нет) / 'renew' (ключ устарел — нужен заход через школу) / 'skip' (ключа нет или ответ непонятен) / 'off' (нет сети).
   var SCHOOL = 'https://school.timofeeva-online.ru/api/v1/';
-  var SCHOOL_API = SCHOOL + 'student-course/MsUmf5w010u7GnQxUhiGHg?fields=' + encodeURIComponent('{id}');
+  var SCHOOL_API = SCHOOL + 'student-course/MsUmf5w010u7GnQxUhiGHg?fields=' + encodeURIComponent('{id,accessEndDate}');
   function sfetch(url, opt, ms) {
     var ctl = window.AbortController ? new AbortController() : null, tm = setTimeout(function () { if (ctl) ctl.abort(); }, ms || 10000);
     opt.cache = 'no-store'; if (ctl) opt.signal = ctl.signal;
@@ -404,6 +404,14 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
         return true;
       });
   }
+  // Дату окончания подписки берём из школы при каждой проверке: если её продлили или поменяли вручную, профиль сразу покажет новую.
+  function setExp(p, sc) {
+    if (!sc || !('accessEndDate' in sc)) return;
+    var e = sc.accessEndDate || null, cur = pass();
+    if (!cur || cur.exp === e) return;
+    cur.exp = e; ls.set(K.a, JSON.stringify(cur)); p.exp = e;
+    if (window.OZAPP) { window.OZAPP.exp = e; try { window.dispatchEvent(new Event('ozapp')); } catch (er) {} }
+  }
   function askSchool(p, token) {
     return sfetch(SCHOOL_API, { headers: { Accept: 'application/json', Authorization: 'Bearer ' + token } }).then(function (r) {
       if (r.status === 401) return 401;
@@ -411,6 +419,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
         // Доступ сняли — школа отвечает ошибкой «Доступ запрещен» (accessDenied), а не hasItemAccess: false.
         if (j && j.success === false && (j.errors || []).some(function (e) { return e && (e.type === 'accessDenied' || e.code === 6); })) return 'no';
         if (!r.ok) return 'skip';
+        if (j && j.success && j.body && j.body.hasItemAccess === true) setExp(p, j.body.studentCourse);
         return j && j.success && j.body && typeof j.body.hasItemAccess === 'boolean' ? (j.body.hasItemAccess ? 'ok' : 'no') : 'skip';
       });
     });

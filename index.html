@@ -90,9 +90,9 @@ body.oz-appmode{padding-bottom:0 !important}
     <a class="oz-b oz-pr oz-x" id="gLogin" hidden href="https://school.timofeeva-online.ru/learn/MsUmf5w010u7GnQxUhiGHg/theory?app=1">Войти</a>
     <a class="oz-b oz-gh oz-x" id="gBuy" hidden href="https://store.timofeeva-online.ru/orads-pay">Оформить подписку</a>
     <button class="oz-b oz-x" id="gTry" hidden style="background:#fff;color:var(--brand);border:1.5px solid var(--brand)">Попробовать 5 дней за 49 ₽</button>
-    <div id="gPay" hidden style="margin:14px -10px 0;text-align:left"><iframe title="Оплата подписки" style="display:block;width:100%;height:560px;border:0;background:#fff;border-radius:16px"></iframe><p class="oz-sm" style="text-align:center">Укажите ту же почту, что в школе: доступ продлится на неё.</p></div>
+    <div id="gPay" hidden style="margin:14px -10px 0;text-align:left"><iframe title="Оплата подписки" style="display:block;width:100%;height:560px;border:0;background:#fff;border-radius:16px"></iframe><p class="oz-sm" style="text-align:center">Укажите ту же почту, что в школе:<br>доступ продлится на неё.</p></div>
     <button class="oz-b oz-gh oz-x" id="gRetry" hidden>Попробовать ещё раз</button>
-    <p class="oz-sm oz-x" id="gHint" hidden>Вход через аккаунт школы «Тимофеева онлайн»: та же почта и пароль.</p>
+    <p class="oz-sm oz-x" id="gHint" hidden>Вход через аккаунт школы «Тимофеева онлайн».<br>Почта и пароль те же, что в школе.</p>
   </div>
 </div>
 <div id="app" hidden>
@@ -206,7 +206,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   function appData(offline) {
     var p = pass() || {};
     window.OZAPP = { offline: !!offline, exp: p.exp || null, c: p.c || null, buy: 'https://store.timofeeva-online.ru/orads-pay', payForm: PAYW, trialForm: 'https://store.timofeeva-online.ru/sw/THjKA_er5UW_50llMh5vmw',
-      school: 'https://school.timofeeva-online.ru/', support: 'https://school.timofeeva-online.ru/?go=support', name: ls.get('orads_name') || '', email: ls.get('orads_email') || '', supportForm: 'https://store.timofeeva-online.ru/sw/0qV3eAeyn02sITPVUrUm4Q', standalone: !!standalone, chat: (function () { try { return JSON.parse(ls.get('orads_chat') || 'null'); } catch (e) { return null; } })(), cache: (function () { try { return JSON.parse(ls.get('orads_cache') || 'null'); } catch (e) { return null; } })(), install: function () { install(); } };
+      school: 'https://school.timofeeva-online.ru/', support: 'https://school.timofeeva-online.ru/?go=support', profile: 'https://school.timofeeva-online.ru/?go=profile', logout: function () { logout(); }, name: ls.get('orads_name') || '', email: ls.get('orads_email') || '', supportForm: 'https://store.timofeeva-online.ru/sw/0qV3eAeyn02sITPVUrUm4Q', standalone: !!standalone, chat: (function () { try { return JSON.parse(ls.get('orads_chat') || 'null'); } catch (e) { return null; } })(), cache: (function () { try { return JSON.parse(ls.get('orads_cache') || 'null'); } catch (e) { return null; } })(), install: function () { install(); } };
   }
   function setOffline(off) {
     if (!window.OZAPP) return;
@@ -412,6 +412,25 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
     cur.exp = e; ls.set(K.a, JSON.stringify(cur)); p.exp = e;
     if (window.OZAPP) { window.OZAPP.exp = e; try { window.dispatchEvent(new Event('ozapp')); } catch (er) {} }
   }
+  // Имя и почту тоже берём из школы (не чаще раза в 10 минут): если ученик поменял их в профиле школы, справочник покажет новые.
+  function meSync(token) {
+    if (Date.now() - (meSync.at || 0) < 6e5) return; meSync.at = Date.now();
+    sfetch(SCHOOL + 'authorization/me?fields=' + encodeURIComponent('{firstName,lastName,email}'), { headers: { Accept: 'application/json', Authorization: 'Bearer ' + token } })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        var u = j && j.body; if (!u) return;
+        var nm = [u.firstName, u.lastName].filter(Boolean).join(' ').trim().slice(0, 60), em = String(u.email || '').slice(0, 120), ch = false;
+        if (nm && nm !== ls.get('orads_name')) { ls.set('orads_name', nm); ch = true; }
+        if (/^[^@\s]+@[^@\s]+$/.test(em) && em !== ls.get('orads_email')) { ls.set('orads_email', em); ch = true; }
+        if (ch && window.OZAPP) { window.OZAPP.name = nm || window.OZAPP.name; window.OZAPP.email = em || window.OZAPP.email; try { window.dispatchEvent(new Event('ozapp')); } catch (e) {} }
+      }).catch(function () {});
+  }
+  // Выход: стираем всё о подписке на телефоне и выходим из школы (её код по ссылке /?go=logout), дальше — вход и возврат в справочник.
+  function logout() {
+    wipe(); ['orads_name', 'orads_email', 'orads_cache', 'orads_rep', 'orads_dyn', 'orads_dynh'].forEach(ls.del);
+    try { sessionStorage.removeItem('orads_go'); } catch (e) {}
+    loader('Выходим из аккаунта', 'Переходим ко входу в школу');
+    setTimeout(function () { location.href = 'https://school.timofeeva-online.ru/?go=logout'; }, 300);
+  }
   function askSchool(p, token) {
     return sfetch(SCHOOL_API, { headers: { Accept: 'application/json', Authorization: 'Bearer ' + token } }).then(function (r) {
       if (r.status === 401) return 401;
@@ -419,7 +438,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
         // Доступ сняли — школа отвечает ошибкой «Доступ запрещен» (accessDenied), а не hasItemAccess: false.
         if (j && j.success === false && (j.errors || []).some(function (e) { return e && (e.type === 'accessDenied' || e.code === 6); })) return 'no';
         if (!r.ok) return 'skip';
-        if (j && j.success && j.body && j.body.hasItemAccess === true) setExp(p, j.body.studentCourse);
+        if (j && j.success && j.body && j.body.hasItemAccess === true) { setExp(p, j.body.studentCourse); meSync(token); }
         return j && j.success && j.body && typeof j.body.hasItemAccess === 'boolean' ? (j.body.hasItemAccess ? 'ok' : 'no') : 'skip';
       });
     });
@@ -730,6 +749,40 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
       o.addEventListener('click', function (e) { if (e.target === o) close(); });
     }
   })();
+})();
+</script>
+<script>
+/* Переносы строк: короткие слова (предлоги, союзы, «же», числа с единицами, названия в «ёлочках») не остаются одни в конце или начале строки. */
+(function () {
+  var NB = ' ', SKIP = /^(SCRIPT|STYLE|TEXTAREA|INPUT|CODE|PRE|SELECT|OPTION|svg)$/i;
+  function fix(t) {
+    var o = t;
+    t = t.replace(/\b([A-Z]{1,3})-(RADS|IOTA)/g, '$1\u2011$2');
+    t = t.replace(/«([^«»\n]{1,32})»/g, function (m, x) { return '«' + x.replace(/ +/g, NB) + '»'; });
+    for (var i = 0; i < 2; i++) t = t.replace(/(^|[\s«("„ ])([А-Яа-яЁёA-Za-z]{1,2}|№|и|а|в|к|с|у|о)\s+(?=\S)/g, '$1$2' + NB);
+    t = t.replace(/(\S)\s+(—|–)(?=\s)/g, '$1' + NB + '$2');
+    t = t.replace(/(через|после|около|более|менее)\s+(?=\d)/g, '$1' + NB);
+    t = t.replace(/\s+(же|ли|бы|ль)(?=[\s.,!?:;»)]|$)/g, NB + '$1');
+    t = t.replace(/(\d)\s+(?=(₽|%|мм|см|мес\.?|дн\.?|дн(я|ей)|день|г\.|лет|года?|руб|января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря))/g, '$1' + NB);
+    t = t.replace(/([^\s])\s+([A-Za-zА-Яа-яЁё]{1,2}|\d{1,2}|›|→)(?=[.,!?:;»)]?$)/g, '$1' + NB + '$2');
+    return t === o ? null : t;
+  }
+  function walk(root) {
+    if (!root) return;
+    if (root.nodeType === 3) { var f = fix(root.nodeValue); if (f !== null) root.nodeValue = f; return; }
+    if (root.nodeType !== 1 || SKIP.test(root.nodeName) || root.isContentEditable) return;
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: function (n) { for (var e = n.parentNode; e && e !== root.parentNode; e = e.parentNode) if (e.nodeType === 1 && SKIP.test(e.nodeName)) return NodeFilter.FILTER_REJECT; return /\s/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP; } }), n, list = [];
+    while ((n = w.nextNode())) list.push(n);
+    list.forEach(function (x) { var f = fix(x.nodeValue); if (f !== null) x.nodeValue = f; });
+  }
+  window.ozTypo = walk;
+  walk(document.body);
+  var q = [], busy = false;
+  new MutationObserver(function (ms) {
+    ms.forEach(function (m) { if (m.type === 'characterData') q.push(m.target); else m.addedNodes.forEach(function (a) { q.push(a); }); });
+    if (busy) return; busy = true;
+    requestAnimationFrame(function () { var l = q; q = []; l.forEach(walk); busy = false; });
+  }).observe(document.body, { childList: true, subtree: true, characterData: true });
 })();
 </script>
 </body>

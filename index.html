@@ -89,6 +89,7 @@ body.oz-appmode{padding-bottom:0 !important}
     <p class="oz-p" id="gMsg">Открываем справочник…</p>
     <a class="oz-b oz-pr oz-x" id="gLogin" hidden href="https://school.timofeeva-online.ru/learn/MsUmf5w010u7GnQxUhiGHg/theory?app=1">Открыть через школу</a>
     <a class="oz-b oz-gh oz-x" id="gBuy" hidden href="https://store.timofeeva-online.ru/orads-pay">Оформить подписку</a>
+    <div id="gPay" hidden style="margin:14px -10px 0;text-align:left"><iframe title="Оплата подписки" style="display:block;width:100%;height:560px;border:0;background:#fff;border-radius:16px"></iframe><p class="oz-sm" style="text-align:center">Укажите ту же почту, что в школе: доступ продлится на неё.</p></div>
     <button class="oz-b oz-gh oz-x" id="gRetry" hidden>Попробовать ещё раз</button>
     <p class="oz-sm oz-x" id="gHint" hidden>Справочник откроется из урока в личном кабинете школы «Тимофеева онлайн». Нужна активная подписка.</p>
   </div>
@@ -176,17 +177,33 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   }
   function pass() { try { return JSON.parse(ls.get(K.a) || 'null'); } catch (e) { return null; } }
 
+  var PAYW = 'https://store.timofeeva-online.ru/sw/PhxeCBk1kEGftvWANzvJwA';
+  // «Оформить подписку» на заставке: форма оплаты Prodamus прямо здесь, без перехода на отдельную страницу.
+  $('gBuy').addEventListener('click', function (e) {
+    if (navigator.onLine === false) return;
+    e.preventDefault();
+    var q = new URLSearchParams(), em = ls.get('orads_email'), nm = ls.get('orads_name');
+    if (em) q.set('email', em); if (nm) q.set('name', nm);
+    var f = $('gPay').querySelector('iframe'); if (!f.src) f.src = PAYW + (q.toString() ? '?' + q.toString() : '');
+    $('gPay').hidden = false; $('gBuy').hidden = true;
+  });
+  window.addEventListener('message', function (e) {
+    var f = $('gPay').querySelector('iframe'), m = e.data;
+    if (e.origin !== 'https://store.timofeeva-online.ru' || !m || typeof m !== 'object' || e.source !== f.contentWindow) return;
+    if (m.type === 'resize' && m.height > 100) f.style.height = Math.min(1400, Math.ceil(m.height)) + 'px';
+    if ((m.type === 'redirect' || m.type === 'redirect-top') && typeof m.href === 'string' && /^https:\/\//.test(m.href)) location.href = m.href;
+  });
   function gate(msg, opts) {
     opts = opts || {};
     loaderDone(); $('app').hidden = true; $('gate').hidden = false;
     $('gMsg').textContent = msg;
     $('gLogin').hidden = !opts.login; $('gHint').hidden = !opts.login;
-    $('gBuy').hidden = !opts.buy; $('gRetry').hidden = !opts.retry;
+    $('gBuy').hidden = !opts.buy; $('gRetry').hidden = !opts.retry; $('gPay').hidden = true;
   }
   // Данные для вкладки «Профиль» и плашки «Нет сети» внутри справочника.
   function appData(offline) {
     var p = pass() || {};
-    window.OZAPP = { offline: !!offline, exp: p.exp || null, c: p.c || null, buy: 'https://store.timofeeva-online.ru/orads-pay',
+    window.OZAPP = { offline: !!offline, exp: p.exp || null, c: p.c || null, buy: 'https://store.timofeeva-online.ru/orads-pay', payForm: PAYW,
       school: 'https://school.timofeeva-online.ru/', support: 'https://school.timofeeva-online.ru/?go=support', name: ls.get('orads_name') || '', email: ls.get('orads_email') || '', supportForm: 'https://store.timofeeva-online.ru/sw/0qV3eAeyn02sITPVUrUm4Q', standalone: !!standalone, chat: (function () { try { return JSON.parse(ls.get('orads_chat') || 'null'); } catch (e) { return null; } })(), cache: (function () { try { return JSON.parse(ls.get('orads_cache') || 'null'); } catch (e) { return null; } })(), install: function () { install(); } };
   }
   function setOffline(off) {

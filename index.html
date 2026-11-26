@@ -50,6 +50,11 @@ html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-syst
 .oz-er i:nth-child(2){animation-delay:.8s}.oz-er i:nth-child(3){animation-delay:1.6s}
 .oz-st b{font-weight:600;font-size:.95rem;color:var(--ink);transition:opacity .2s}
 .oz-st small{display:block;font-size:.75rem;color:var(--mu);font-weight:500}
+.oz-st small:empty{display:none}
+.oz-st .br{display:none;align-items:center;gap:8px;margin-top:6px}.oz-ld.pg .oz-st .br{display:flex}
+.oz-st .bar{display:block;width:170px;height:4px;border-radius:2px;background:#EADCDD;overflow:hidden}
+.oz-st .bar i{display:block;height:100%;width:0;background:var(--brand);border-radius:2px}
+.oz-st .pc{font-variant-numeric:tabular-nums;color:var(--brand);font-weight:700;font-size:.8rem;min-width:3.3ch;text-align:right}
 @keyframes ozRing{0%{transform:scale(.6);opacity:.8;border-color:#752b2d}100%{transform:scale(1.7);opacity:0;border-color:#F4B6C2}}
 @keyframes ozBreath{50%{transform:scale(1.06)}}
 @keyframes ozPill{from{opacity:0;transform:translate(-50%,10px)}}
@@ -167,6 +172,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
     try { var p = JSON.parse(new TextDecoder().decode(b64u(m[1]))); if (p.k && p.f && p.c) { ls.set(K.a, JSON.stringify(p)); ls.del('orads_at'); if (typeof p.n === 'string') ls.set('orads_name', p.n.slice(0, 60)); if (typeof p.e === 'string' && /^[^@\s]+@[^@\s]+$/.test(p.e)) ls.set('orads_email', p.e.slice(0, 120)); } } catch (e) {}
     try { sessionStorage.removeItem('orads_go'); } catch (e) {}
     history.replaceState(null, '', location.pathname + location.search);
+    load.from = 20; // в уроке шкала уже прошла 0–20%
   }
   function pass() { try { return JSON.parse(ls.get(K.a) || 'null'); } catch (e) { return null; } }
 
@@ -181,7 +187,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   function appData(offline) {
     var p = pass() || {};
     window.OZAPP = { offline: !!offline, exp: p.exp || null, c: p.c || null, buy: 'https://store.timofeeva-online.ru/orads-pay',
-      school: 'https://school.timofeeva-online.ru/', support: 'https://school.timofeeva-online.ru/?go=support', name: ls.get('orads_name') || '', email: ls.get('orads_email') || '', supportForm: 'https://store.timofeeva-online.ru/sw/0qV3eAeyn02sITPVUrUm4Q', standalone: !!standalone, install: function () { install(); } };
+      school: 'https://school.timofeeva-online.ru/', support: 'https://school.timofeeva-online.ru/?go=support', name: ls.get('orads_name') || '', email: ls.get('orads_email') || '', supportForm: 'https://store.timofeeva-online.ru/sw/0qV3eAeyn02sITPVUrUm4Q', standalone: !!standalone, cache: (function () { try { return JSON.parse(ls.get('orads_cache') || 'null'); } catch (e) { return null; } })(), install: function () { install(); } };
   }
   function setOffline(off) {
     if (!window.OZAPP) return;
@@ -207,6 +213,12 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
     });
   }
   // Картинки справочника заранее сохраняем на телефон, чтобы они открывались и без сети (видео — нет, оно слишком большое).
+  // Ход сохранения картинок для работы без сети (присылает sw.js) — показывается в профиле справочника.
+  if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', function (e) {
+    var c = e.data && e.data.orads_cache; if (!c) return;
+    ls.set('orads_cache', JSON.stringify(c));
+    if (window.OZAPP) { window.OZAPP.cache = c; try { window.dispatchEvent(new Event('ozapp')); } catch (er) {} }
+  });
   function precache(html) {
     if (!navigator.serviceWorker) return;
     var urls = {}, re = /https:\/\/[^"'\s)<>`]+?\.(?:jpe?g|png|webp|gif|svg)(?:\?[^"'\s)<>`]*)?/gi, m;
@@ -225,17 +237,38 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
         '<i class="sk" style="width:40%;height:20px;margin-top:26px"></i>' +
         '<i class="sk ds" style="height:96px;margin-top:14px;border-radius:18px"></i>' +
         '<div class="sk-g"><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i></div></div>' +
-        '<div class="oz-st"><span class="oz-er"><i></i><i></i><i></i><img src="icon-192.png" alt=""></span><span><b></b><small></small></span></div>';
+        '<div class="oz-st"><span class="oz-er"><i></i><i></i><i></i><img src="icon-192.png" alt=""></span><span><b></b><small></small><span class="br"><span class="bar"><i></i></span><span class="pc">0%</span></span></span></div>';
       document.body.appendChild(LD);
       LD.t0 = Date.now();
-      LD.slow = setTimeout(function () { if (LD) LD.querySelector('small').textContent = 'Почти готово, ещё немного…'; }, 12000);
+      LD.slow = setTimeout(function () { if (LD) LD.querySelector('small').textContent = 'Медленный интернет, ещё немного…'; }, 12000);
     }
     LD.querySelector('b').textContent = text;
     LD.querySelector('small').textContent = sub || '';
   }
+  // Шкала загрузки 0–100%. Этап задаёт диапазон (lo–hi); внутри этапа шкала плавно ползёт к hi, не доходя до него,
+  // а настоящие байты (скачивание) двигают её точно. Показанное число всегда догоняет цель плавно, без скачков.
+  var PG = { on: false, lo: 0, hi: 0, t0: 0, real: 0, shown: 0, done: null };
+  function prog(lo, hi) {
+    if (!LD) return;
+    if (!PG.on) { PG.on = true; PG.shown = lo; LD.classList.add('pg'); requestAnimationFrame(progTick); }
+    PG.lo = Math.max(lo, PG.shown); PG.hi = hi; PG.t0 = Date.now(); PG.real = 0;
+  }
+  function progReal(f) { PG.real = Math.max(PG.real, Math.min(1, f)); }
+  function progEnd() { return new Promise(function (res) { if (!PG.on) return res(); PG.lo = 100; PG.hi = 100; PG.done = res; }); }
+  function progTick() {
+    if (!PG.on || !LD) { PG.on = false; return; }
+    var creep = (PG.hi - PG.lo) * 0.85 * (1 - Math.exp(-(Date.now() - PG.t0) / 1200));
+    var target = PG.lo + Math.max(creep, (PG.hi - PG.lo) * PG.real);
+    PG.shown += (target - PG.shown) * 0.12;
+    if (PG.hi === 100 && PG.lo === 100 && 100 - PG.shown < 0.5) PG.shown = 100;
+    LD.querySelector('.bar i').style.width = PG.shown.toFixed(2) + '%';
+    LD.querySelector('.pc').textContent = Math.floor(PG.shown) + '%';
+    if (PG.shown >= 100 && PG.done) { var d = PG.done; PG.done = null; setTimeout(d, 150); }
+    requestAnimationFrame(progTick);
+  }
   function loaderDone() {
     if (!LD) return;
-    var l = LD; LD = null; clearTimeout(l.slow);
+    var l = LD; LD = null; PG.on = false; clearTimeout(l.slow);
     setTimeout(function () { l.classList.add('gone'); setTimeout(function () { l.remove(); }, 500); }, Math.max(0, 500 - (Date.now() - l.t0)));
   }
   // Тихая проверка обновлений поверх открытого справочника: плашка сверху, только если проверка затянулась.
@@ -268,7 +301,14 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   }
 
   function decryptFrom(p) {
-    return withTimeout(p.f, 30000).then(function (r) { if (!r.ok) throw new Error('файл ' + r.status); return r.text(); })
+    return withTimeout(p.f, 30000).then(function (r) {
+        if (!r.ok) throw new Error('файл ' + r.status);
+        var len = +r.headers.get('Content-Length') || 0;
+        if (!len || !r.body || !r.body.getReader || !window.TextDecoder) return r.text();
+        // Читаем по кусочкам, чтобы шкала шла по настоящим байтам.
+        var rd = r.body.getReader(), dec = new TextDecoder(), got = 0, out = '';
+        return (function pump() { return rd.read().then(function (x) { if (x.done) return out + dec.decode(); got += x.value.length; out += dec.decode(x.value, { stream: true }); progReal(got / len); return pump(); }); })();
+      })
       .then(function (t) {
         var all = b64(t);
         return crypto.subtle.importKey('raw', b64(p.k), 'AES-GCM', false, ['decrypt']).then(function (key) {
@@ -408,7 +448,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
       verify(p).then(function (r) { checking(false); if (r === 'off') setOffline(true); });
       return;
     }
-    loader('Проверяем подписку', 'Справочник O-RADS US');
+    loader('Проверяем подписку', ''); prog(load.from || 0, 30); load.from = 0;
     verify(p).then(function (r) {
       if (r === 'stop') return;
       if (r === 'off') {
@@ -416,10 +456,11 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
         return gate('Нет связи с сервером. Проверьте интернет и нажмите «Попробовать ещё раз».', { retry: true });
       }
       if (renewDue(p)) return renew();
-      loader('Загружаем справочник', 'Сохраняем на телефон для работы без сети');
+      loader('Загружаем справочник', ''); prog(30, 90);
       return decryptFrom(p).then(function (h) {
         ls.set(K.html, h); ls.set(K.v, p.c);
-        show(h, false); precache(h);
+        loader('Почти готово', ''); prog(90, 100);
+        return progEnd().then(function () { show(h, false); precache(h); });
       }, function (e) {
         if (e && (e.name === 'OperationError' || /файл 40/.test(e.message))) return needKey('Доступ к справочнику нужно обновить. Откройте его через школу.');
         if (html) return show(html, true);

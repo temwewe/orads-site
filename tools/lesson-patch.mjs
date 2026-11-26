@@ -1,5 +1,5 @@
 // Разовая правка блока в уроке «Справочник O-RADS US». Первая версия (25.11) добавила в пропуск s, i, r;
-// эта — личный ключ ученика t. Запуск: workflow «Правка урока справочника» (DRY=1 — только показать).
+// потом — личный ключ ученика t; эта (26.11) — шкала загрузки на экране «Открываем справочник». Запуск: workflow «Правка урока справочника» (DRY=1 — только показать).
 // REVERT=1 — убрать правку. Проверяет, что урок из школы «Тимофеева онлайн».
 const API = 'https://app.xl.ru/api/v1';
 const LESSON_ID = 'MsUmf5w010u7GnQxUhiGHg';
@@ -14,10 +14,11 @@ async function api(method, path, body) {
 }
 // Замены без двойных кавычек, переносов строк, < > & — чтобы они одинаково совпадали в HTML и в JSON дерева редактора.
 const PAIRS = [
-  // 25.11 вечер: в пропуск — личный ключ ученика (t), чтобы сайт спрашивал школу о доступе напрямую.
-  // и ключ продления (rt): по нему сайт сам получает свежий ключ, когда часовой истечёт (ключ продления у Prodamus не меняется).
-  ["ozMe.p = !t ? Promise.resolve() :", "ozMe.t = t ? decodeURIComponent(t) : ''; ozMe.rt = decodeURIComponent((document.cookie.match(/student_refresh_token=([^;]+)/) || [])[1] || ''); ozMe.p = !t ? Promise.resolve() :"],
-  ["s: ozMe.s || '',", "s: ozMe.s || '', t: ozMe.t || '', rt: ozMe.rt || '',"],
+  // 26.11: шкала загрузки на экране «Открываем справочник» (вариант Б: только заголовок, шкала и проценты справа).
+  // В уроке шкала проходит 0–20%, дальше сайт продолжает с 20%.
+  ["c.appendChild(ozEl('div', '', 'Открываем справочник')); c.appendChild(ozEl('div', 'font-weight:500;font-size:14px;color:#86868b', 'Проверяем подписку…'));",
+   "c.appendChild(ozEl('div', '', 'Проверяем подписку')); var pr = ozEl('div', 'display:flex;align-items:center;gap:10px;margin-top:8px'), pb = ozEl('div', 'width:200px;height:4px;border-radius:2px;background:#EADCDD;overflow:hidden'), pf = ozEl('div', 'height:100%;width:0;background:#752b2d;border-radius:2px'), pt = ozEl('div', 'font-weight:700;font-size:13px;color:#752b2d;min-width:36px;text-align:right;font-variant-numeric:tabular-nums', '0%'); pb.appendChild(pf); pr.appendChild(pb); pr.appendChild(pt); c.appendChild(pr); var sh = 0, s0 = Date.now(); function tick() { var tg = Math.max(ozCover.v || 0, 18 * (1 - Math.exp(-(Date.now() - s0) / 900))); sh += (tg - sh) * 0.12; pf.style.width = sh.toFixed(2) + '%'; pt.textContent = Math.floor(sh) + '%'; if (c.isConnected) requestAnimationFrame(tick); } requestAnimationFrame(tick);"],
+  ["if (auto) location.replace(u);", "if (auto) { ozCover.v = 20; setTimeout(function () { location.replace(u); }, 250); }"],
 ];
 const count = (s, x) => s.split(x).length - 1;
 const F = ['designSettings', 'designSettingsPublished', 'designHTMLPublished'];

@@ -185,6 +185,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   var PAYW = 'https://store.timofeeva-online.ru/sw/PhxeCBk1kEGftvWANzvJwA';
   // «Оформить подписку» на заставке: форма оплаты Prodamus прямо здесь, без перехода на отдельную страницу.
   var TRYW = 'https://store.timofeeva-online.ru/sw/THjKA_er5UW_50llMh5vmw';
+  var INVW = 'https://store.timofeeva-online.ru/sw/88WXyQKZn02Ptt2_6LRNNg';
   function openPay(w) {
     var q = new URLSearchParams(), em = ls.get('orads_email'), nm = ls.get('orads_name');
     if (em) q.set('email', em); if (nm) q.set('name', nm);
@@ -210,7 +211,7 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
   function appData(offline) {
     var p = pass() || {};
     window.OZAPP = { offline: !!offline, exp: p.exp || null, c: p.c || null, buy: 'https://store.timofeeva-online.ru/orads-pay', payForm: PAYW, trialForm: 'https://store.timofeeva-online.ru/sw/THjKA_er5UW_50llMh5vmw',
-      school: 'https://school.timofeeva-online.ru/', support: 'https://school.timofeeva-online.ru/?go=support', profile: 'https://school.timofeeva-online.ru/?go=profile', logout: function () { logout(); }, name: ls.get('orads_name') || '', email: ls.get('orads_email') || '', supportForm: 'https://store.timofeeva-online.ru/sw/0qV3eAeyn02sITPVUrUm4Q', standalone: !!standalone, chat: (function () { try { return JSON.parse(ls.get('orads_chat') || 'null'); } catch (e) { return null; } })(), cache: (function () { try { return JSON.parse(ls.get('orads_cache') || 'null'); } catch (e) { return null; } })(), install: function () { install(); } };
+      school: 'https://school.timofeeva-online.ru/', support: 'https://school.timofeeva-online.ru/?go=support', profile: 'https://school.timofeeva-online.ru/?go=profile', logout: function () { logout(); }, name: ls.get('orads_name') || '', email: ls.get('orads_email') || '', supportForm: 'https://store.timofeeva-online.ru/sw/0qV3eAeyn02sITPVUrUm4Q', invite: inviteUrl(ls.get('orads_pc')), standalone: !!standalone, chat: (function () { try { return JSON.parse(ls.get('orads_chat') || 'null'); } catch (e) { return null; } })(), cache: (function () { try { return JSON.parse(ls.get('orads_cache') || 'null'); } catch (e) { return null; } })(), install: function () { install(); } };
   }
   function setOffline(off) {
     if (!window.OZAPP) return;
@@ -427,10 +428,19 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
         if (/^[^@\s]+@[^@\s]+$/.test(em) && em !== ls.get('orads_email')) { ls.set('orads_email', em); ch = true; }
         if (ch && window.OZAPP) { window.OZAPP.name = nm || window.OZAPP.name; window.OZAPP.email = em || window.OZAPP.email; try { window.dispatchEvent(new Event('ozapp')); } catch (e) {} }
       }).catch(function () {});
+    // Код ученика в партнёрской программе школы: из него строим ссылку «Пригласить коллегу» в профиле.
+    sfetch(SCHOOL + 'partnership/member?fields=' + encodeURIComponent('{code}'), { headers: { Accept: 'application/json', Authorization: 'Bearer ' + token } })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        var c = j && j.body && String(j.body.code || '');
+        if (!c || !/^[A-Za-z0-9_-]{2,40}$/.test(c) || c === ls.get('orads_pc')) return;
+        ls.set('orads_pc', c);
+        if (window.OZAPP) { window.OZAPP.invite = inviteUrl(c); try { window.dispatchEvent(new Event('ozapp')); } catch (e) {} }
+      }).catch(function () {});
   }
+  function inviteUrl(c) { return c ? INVW + '?a_pc=' + encodeURIComponent(c) : ''; }
   // Выход: стираем всё о подписке на телефоне и выходим из школы (её код по ссылке /?go=logout), дальше — вход и возврат в справочник.
   function logout() {
-    wipe(); ['orads_name', 'orads_email', 'orads_cache', 'orads_rep', 'orads_dyn', 'orads_dynh'].forEach(ls.del);
+    wipe(); ['orads_name', 'orads_email', 'orads_pc', 'orads_cache', 'orads_rep', 'orads_dyn', 'orads_dynh'].forEach(ls.del);
     try { sessionStorage.removeItem('orads_go'); } catch (e) {}
     loader('Выходим из аккаунта', 'Переходим ко входу в школу');
     setTimeout(function () { location.href = 'https://school.timofeeva-online.ru/?go=logout'; }, 300);

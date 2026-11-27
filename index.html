@@ -303,7 +303,9 @@ window.onerror = function (m, src, line) { var g = document.getElementById('gMsg
     PG.lo = Math.max(lo, PG.shown); PG.hi = hi; PG.t0 = Date.now(); PG.real = 0;
   }
   function progReal(f) { PG.real = Math.max(PG.real, Math.min(1, f)); }
-  function progEnd() { return new Promise(function (res) { if (!PG.on) return res(); PG.lo = 100; PG.hi = 100; PG.done = res; }); }
+  function progEnd() { return new Promise(function (res) { if (!PG.on) return res(); PG.lo = 100; PG.hi = 100; PG.done = res;
+    // Если анимация стоит (вкладка в фоне, встроенный браузер не рисует кадры) — не ждём её, открываем справочник.
+    setTimeout(function () { if (PG.done === res) { PG.done = null; res(); } }, 1500); }); }
   function progTick() {
     if (!PG.on || !LD) { PG.on = false; return; }
     var creep = (PG.hi - PG.lo) * 0.85 * (1 - Math.exp(-(Date.now() - PG.t0) / 1200));

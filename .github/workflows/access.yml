@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - name: Проверять каждые 10 минут
         run: |
           end=$(( $(date +%s) + 340*60 ))

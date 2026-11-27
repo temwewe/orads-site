@@ -1,0 +1,17 @@
+name: Правка урока (разовая, откат)
+on:
+  push:
+    branches: [claude/project-thread-lqz9vs]
+    paths: [.github/workflows/lesson-patch.yml]
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/lesson-patch.mjs
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          REVERT: '1'

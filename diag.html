@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Проверка экрана</title>
+<style>body{margin:0;font:15px/1.4 -apple-system,system-ui,sans-serif;background:#f4f4f4}#b{position:fixed;top:0;left:0;right:0;height:40px;background:#762b2b;color:#fff;display:flex;align-items:center;justify-content:center;z-index:5}
+#t{position:fixed;left:0;right:0;bottom:0;height:30px;background:#2a7;color:#fff;text-align:center;line-height:30px}
+#sa{position:fixed;top:0;left:0;width:1px;height:env(safe-area-inset-top);visibility:hidden}#sb{position:fixed;bottom:0;left:0;width:1px;height:env(safe-area-inset-bottom);visibility:hidden}
+pre{white-space:pre-wrap;word-break:break-all;margin:60px 12px 300px;background:#fff;padding:12px;border-radius:12px;font-size:16px}</style></head>
+<body><div id="b">ВЕРХ (fixed top:0)</div><div id="t">НИЗ (fixed bottom:0)</div><div id="sa"></div><div id="sb"></div><pre id="o"></pre>
+<script>
+function r(){var v=window.visualViewport||{};var o={ua:navigator.userAgent,innerW:innerWidth,innerH:innerHeight,clientH:document.documentElement.clientHeight,screen:screen.width+'x'+screen.height,vvH:v.height,vvTop:v.offsetTop,vvPageTop:v.pageTop,scrollY:scrollY,dpr:devicePixelRatio,
+safeTop:document.getElementById('sa').offsetHeight,safeBottom:document.getElementById('sb').offsetHeight,standalone:navigator.standalone,tgProxy:!!window.TelegramWebviewProxy,tg:typeof window.Telegram,webkitHandlers:window.webkit&&window.webkit.messageHandlers?Object.keys(window.webkit.messageHandlers):null,
+topRect:document.getElementById('b').getBoundingClientRect().top};
+document.getElementById('o').textContent='Сделайте скриншот этого экрана, потом пролистайте вниз и сделайте второй.\n\n'+JSON.stringify(o,null,1)+'\n\n'+'строка\n'.repeat(60);}
+r();addEventListener('resize',r);addEventListener('scroll',function(){requestAnimationFrame(r)});
+</script></body></html>

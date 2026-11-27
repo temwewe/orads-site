@@ -78,10 +78,11 @@ html,body{margin:0;background:#f5f5f7;color:var(--ink);font:16px/1.5 -apple-syst
 body.oz-appmode .oz-ft,body.oz-appmode .oz-ib{display:none}
 body.oz-appmode{padding-bottom:0 !important}
 .oz-sheet ol{padding-left:20px;margin:10px 0 0}.oz-sheet li{margin:6px 0}
-/* Встроенный браузер Telegram (iOS): страница уходит под его полупрозрачные панели сверху и снизу, а fixed-элементы встают ниже/выше их.
-   Заливаем зону над шапкой цветом шапки и зону под нижними вкладками их фоном, чтобы текст не просвечивал. В Safari эти полосы за краем экрана. */
-#oz .tn::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:100vh;background:#762b2b;pointer-events:none}
-#ozTabs::after{content:"";position:absolute;left:0;right:0;top:100%;height:100vh;background:#fff;pointer-events:none}
+/* Встроенный браузер Telegram (есть window.TelegramWebviewProxy, класс html.tgib): Telegram кладёт страницу под свои полупрозрачные
+   панели, и при прокрутке документа текст просвечивал над шапкой. В этом режиме прокручивается body, а не документ:
+   под панелями Telegram остаётся только фон, шапка и вкладки стоят как обычно. */
+html.tgib{height:100%;overflow:hidden;background:#762b2b}
+html.tgib body{height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;background:#f5f5f7}
 </style>
 </head>
 <body>
@@ -104,6 +105,25 @@ body.oz-appmode{padding-bottom:0 !important}
   <div id="appBody"></div>
   <div class="oz-ft"><span id="who"></span><button id="bInstall" hidden>📲 Установить на телефон</button><button id="bOut">Выйти</button></div>
 </div>
+<script>
+/* Встроенный браузер Telegram: прокрутка внутри body (см. html.tgib в стилях). Справочник зовёт scrollTo/scrollY окна
+   и слушает scroll окна, поэтому они переведены на body. */
+(function () {
+  if (!window.TelegramWebviewProxy) return;
+  var d = document, H = d.documentElement; H.classList.add('tgib');
+  function B() { return d.body; }
+  function y() { return B() ? B().scrollTop : 0; }
+  function to(a, b) { var o = (a && typeof a === 'object') ? a : { left: a, top: b }; if (B()) B().scrollTo({ top: +o.top || 0, left: 0, behavior: o.behavior === 'smooth' ? 'smooth' : 'auto' }); }
+  try {
+    Object.defineProperty(window, 'scrollY', { configurable: true, get: y });
+    Object.defineProperty(window, 'pageYOffset', { configurable: true, get: y });
+  } catch (e) {}
+  window.scrollTo = window.scroll = to;
+  window.scrollBy = function (a, b) { var o = (a && typeof a === 'object') ? a : { top: b }; to({ top: y() + (+o.top || 0), behavior: o.behavior }); };
+  function hook() { B().addEventListener('scroll', function () { window.dispatchEvent(new Event('scroll')); }, { passive: true }); }
+  if (d.body) hook(); else d.addEventListener('DOMContentLoaded', hook);
+})();
+</script>
 <script>
 window.onerror = function (m, src, line) { var g = document.getElementById('gMsg'); if (g) { g.textContent = 'Ошибка: ' + m + ' (' + line + ')'; document.getElementById('gate').hidden = false; } };
 </script>

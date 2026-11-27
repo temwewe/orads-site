@@ -38,5 +38,6 @@ jobs:
           up sw.js 'application/javascript; charset=utf-8' "$NC"
           up version.json 'application/json; charset=utf-8' "$NC"
           up manifest.webmanifest 'application/manifest+json' "$NC"
+          up diag.html 'text/html; charset=utf-8' "$NC"
           for f in icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png; do up "$f" image/png 'public, max-age=86400'; done
           aws $EP s3 ls "$B/"
